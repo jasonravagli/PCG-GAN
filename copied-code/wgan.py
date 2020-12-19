@@ -3,7 +3,7 @@ from __future__ import print_function, division
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, UpSampling2D, Conv2D
-from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2D, LeakyReLU
+from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2D, LeakyReLU, Layer
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.optimizers import RMSprop
 

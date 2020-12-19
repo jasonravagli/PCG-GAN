@@ -91,6 +91,7 @@ class WGAN(tf.keras.Model):
             t.watch(x_hat)
             d_hat = self.discriminate(x_hat)
         gradients = t.gradient(d_hat, x_hat)
+        print(gradients.shape)
         ddx = tf.sqrt(tf.reduce_sum(gradients ** 2, axis=[1, 2]))
         d_regularizer = tf.reduce_mean((ddx - 1.0) ** 2)
         return d_regularizer

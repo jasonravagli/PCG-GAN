@@ -78,11 +78,7 @@ class WGANGP():
 
         self.critic_model = Model(inputs=[real_img, z_disc],
                             outputs=[valid, fake, validity_interpolated])
-        self.critic_model.compile(loss=[self.wasserstein_loss,
-                                              self.wasserstein_loss,
-                                              partial_gp_loss],
-                                        optimizer=optimizer,
-                                        loss_weights=[1, 1, 10])
+        self.critic_model.compile(,
         #-------------------------------
         # Construct Computational Graph
         #         for Generator
@@ -100,7 +96,7 @@ class WGANGP():
         valid = self.critic(img)
         # Defines generator model
         self.generator_model = Model(z_gen, valid)
-        self.generator_model.compile(loss=self.wasserstein_loss, optimizer=optimizer)
+        self.generator_model.compile(,
 
 
     def gradient_penalty_loss(self, y_true, y_pred, averaged_samples):
