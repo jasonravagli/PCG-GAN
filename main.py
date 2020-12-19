@@ -4,7 +4,6 @@ import tensorflow as tf
 from tensorflow.keras.datasets import fashion_mnist
 from tensorflow.keras.optimizers import RMSprop
 
-from callbacks import GANMonitor
 from losses import wasserstein_loss
 from models.wgan_gp import WGAN
 
@@ -25,9 +24,8 @@ if __name__ == "__main__":
     train_images = (train_images - 127.5) / 127.5
 
     # Create and train the network
-    epochs = 2
+    epochs = 1
     optimizer = RMSprop(0.0005)
-    imgs_callback = GANMonitor(path_imgs_dir=os.path.join(ROOT_PATH, "imgs"), num_img=3, latent_dim=latent_dim)
     wgan = WGAN(img_shape=img_shape, latent_dim=latent_dim, c_optimizer=optimizer, g_optimizer=optimizer)
-    # wgan.fit(train_images, batch_size=batch_size, epochs=epochs, callbacks=[imgs_callback])
     wgan.train(train_images, epochs, batch_size)
+    print("FINISHED!")
