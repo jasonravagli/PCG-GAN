@@ -1,15 +1,16 @@
 import os
 
-import tensorflow as tf
 from tensorflow.keras.datasets import fashion_mnist
-from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.optimizers import Adam
 
-from losses import wasserstein_loss
 from models.wgan_gp import WGAN
+from utils import plot_losses
 
 if __name__ == "__main__":
     ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
-    batch_size = 256
+    PATH_IMG_LOSSES = os.path.join(ROOT_PATH, "imgs", "train_losses.png")
+
+    batch_size =64
     # Size of the noise vector
     latent_dim = 128
 
@@ -25,7 +26,13 @@ if __name__ == "__main__":
 
     # Create and train the network
     epochs = 1
-    optimizer = RMSprop(0.0005)
-    wgan = WGAN(img_shape=img_shape, latent_dim=latent_dim, c_optimizer=optimizer, g_optimizer=optimizer)
-    wgan.train(train_images, epochs, batch_size)
+    generator_optimizer = Adam(
+        learning_rate=0.0001, beta_1=0.5, beta_2=0.9
+    )
+    critic_optimizer = Adam(
+        learning_rate=0.0001, beta_1=0.5, beta_2=0.9
+    )
+    wgan = WGAN(img_shape=img_shape, latent_dim=latent_dim, c_optimizer=critic_optimizer, g_optimizer=generator_optimizer)
+    critic_losses, gen_losses = wgan.train(train_images, epochs, batch_size)
+    plot_losses(PATH_IMG_LOSSES, critic_losses, gen_losses)
     print("FINISHED!")

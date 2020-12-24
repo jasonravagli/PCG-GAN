@@ -49,21 +49,27 @@ class WGAN:
         # 6. Return the generator and discriminator losses as a loss dictionary
 
         n_batches = real_imgs.shape[0]//batch_size
+        steps_per_epoch = n_batches//self.c_steps
         list_c_loss = []
         list_g_loss = []
-        gan_monitor = GANMonitor(path_imgs_dir="../imgs", generator=self.generator, num_img=3, latent_dim=self.latent_dim)
+        gan_monitor = GANMonitor(path_imgs_dir="imgs", generator=self.generator, num_img=3, latent_dim=self.latent_dim)
 
         for i in range(epochs):
             print(f"-------- Epoch {i} --------")
-            for batch_index in tqdm(range(n_batches)):
-                batch_real_imgs = real_imgs[batch_index:batch_index + batch_size]
+            np.random.shuffle(real_imgs)
+            # For each epoch, all batches of real images are shown to the critic once
+            batch_index = 0
+            for _ in tqdm(range(steps_per_epoch)):
 
                 # Train the discriminator first. The original paper recommends training
                 # the discriminator for `x` more steps (typically 5) as compared to
                 # one step of the generator. Here we will train it for 3 extra steps
                 # as compared to 5 to reduce the training time.
                 for _ in range(self.c_steps):
+                    batch_real_imgs = real_imgs[batch_index:batch_index + batch_size]
                     c_loss = self._train_critic_on_batch(batch_real_imgs, batch_size)
+
+                    batch_index += 1
 
                 # Train the generator
                 g_loss = self._train_generator_on_batch(batch_size)
@@ -71,7 +77,7 @@ class WGAN:
                 list_c_loss.append(c_loss)
                 list_g_loss.append(g_loss)
 
-            print(f"Critic Loss: {c_loss[-1]} - Gen. Loss: {g_loss[-1]}")
+            print(f"Critic Loss: {list_c_loss[-1]} - Gen. Loss: {list_g_loss[-1]}")
 
             gan_monitor.save_imgs_on_epoch_end(epoch=i)
 
