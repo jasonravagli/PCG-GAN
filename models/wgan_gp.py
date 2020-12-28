@@ -5,8 +5,8 @@ from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Dropout, 
 from tensorflow.keras.layers import ZeroPadding2D, Activation, Reshape, UpSampling2D, Cropping2D
 from tqdm import tqdm
 
-from losses import generator_wass_loss, critic_wass_loss
-from utils import GANMonitor
+from losses import generator_wass_loss, critic_wass_loss, gradient_penalty_loss
+from training_monitors.wgan_monitor import WGANMonitor
 
 
 class WGAN:
@@ -21,7 +21,7 @@ class WGAN:
             latent_dim,
             c_optimizer,
             g_optimizer,
-            critic_extra_steps=3,
+            critic_extra_steps=5,
             gp_weight=10.0,
     ):
         self.img_shape = img_shape
@@ -52,7 +52,7 @@ class WGAN:
         steps_per_epoch = n_batches//self.c_steps
         list_c_loss = []
         list_g_loss = []
-        gan_monitor = GANMonitor(path_imgs_dir="imgs", generator=self.generator, num_img=3, latent_dim=self.latent_dim)
+        gan_monitor = WGANMonitor(path_imgs_dir="imgs", generator=self.generator, num_img=3, latent_dim=self.latent_dim)
 
         for i in range(epochs):
             print(f"-------- Epoch {i} --------")
@@ -100,7 +100,8 @@ class WGAN:
             # Calculate the critic loss using the fake and real image logits
             wass_loss = critic_wass_loss(real_score=real_logits, fake_score=fake_logits)
             # Calculate the gradient penalty
-            gp = self._gradient_penalty(batch_size, batch_real_imgs, fake_images)
+            # gp = self._gradient_penalty(batch_size, batch_real_imgs, fake_images)
+            gp = gradient_penalty_loss(batch_size, batch_real_imgs, fake_images, self.critic)
             # Add the gradient penalty to the original discriminator loss
             loss = wass_loss + gp * self.gp_weight
 
@@ -134,28 +135,28 @@ class WGAN:
 
         return loss
 
-    def _gradient_penalty(self, batch_size, real_images, fake_images):
-        """ Calculates the gradient penalty.
-
-        This loss is calculated on an interpolated image
-        and added to the discriminator loss.
-        """
-        # Get the interpolated image
-        alpha = tf.random.normal([batch_size, 1, 1, 1], 0.0, 1.0)
-        diff = real_images - fake_images
-        interpolated = real_images + alpha * diff
-
-        with tf.GradientTape() as gp_tape:
-            gp_tape.watch(interpolated)
-            # 1. Get the discriminator output for this interpolated image.
-            pred = self.critic(interpolated, training=True)
-
-        # 2. Calculate the gradients w.r.t to this interpolated image.
-        grads = gp_tape.gradient(pred, [interpolated])[0]
-        # 3. Calculate the norm of the gradients.
-        norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2, 3]))
-        gp = tf.reduce_mean((norm - 1.0) ** 2)
-        return gp
+    # def _gradient_penalty(self, batch_size, real_images, fake_images):
+    #     """ Calculates the gradient penalty.
+    #
+    #     This loss is calculated on an interpolated image
+    #     and added to the discriminator loss.
+    #     """
+    #     # Get the interpolated image
+    #     alpha = tf.random.normal([batch_size, 1, 1, 1], 0.0, 1.0)
+    #     diff = real_images - fake_images
+    #     interpolated = real_images + alpha * diff
+    #
+    #     with tf.GradientTape() as gp_tape:
+    #         gp_tape.watch(interpolated)
+    #         # 1. Get the discriminator output for this interpolated image.
+    #         pred = self.critic(interpolated, training=True)
+    #
+    #     # 2. Calculate the gradients w.r.t to this interpolated image.
+    #     grads = gp_tape.gradient(pred, [interpolated])[0]
+    #     # 3. Calculate the norm of the gradients.
+    #     norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2, 3]))
+    #     gp = tf.reduce_mean((norm - 1.0) ** 2)
+    #     return gp
 
     # ----------------------------------------
     #               GENERATOR
