@@ -5,13 +5,12 @@ from tensorflow.keras import activations
 from tensorflow.keras.layers import Activation, Add, Softmax
 from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Flatten, Dense, LeakyReLU
 from tensorflow.keras.optimizers import Adam
-from tqdm import tqdm
+from tqdm import trange
 
 from losses import generator_wass_loss, critic_wass_loss, gradient_penalty_loss, reconstruction_loss
-from utils import get_all_patches_from_img
 
 
-class SinGANSingleScale:
+class TOADGANSingleScale:
     """
     GAN used to generate a level at a certain scale.
     The implementation is based on the WGAN one inside wgan_gp.py
@@ -21,9 +20,8 @@ class SinGANSingleScale:
             self,
             img_shape,
             index_scale,
-            patch_shape,
-            get_img_from_scale,
-            get_reconstructed_img_from_scale,
+            get_generated_img_at_scale,
+            get_reconstructed_img_at_scale,
             reconstruction_noise,
             critic_steps=3,
             gen_steps=3,
@@ -34,7 +32,6 @@ class SinGANSingleScale:
         """
         :param img_shape: Shape of the image to be generated from the GAN
         :param index_scale: Index of the GAN in the TOAD-GAN hierarchy (0 is the lowest scale)
-        :param patch_shape: Shape of the patches extracted from fake and real images to be evaluated from the critic
         :param get_img_from_scale: Function to generate an image at a certain scale in the TOAD-GAN hierarchy (it is used
         to generate an image at the previous scale. This is image will be the input to the GAN together with the noise)
         :param get_reconstructed_img_from_scale: Function to get the reconstructed original image (generated from noise)
@@ -50,9 +47,8 @@ class SinGANSingleScale:
         self.img_shape = img_shape
         # Index of the GAN inside the SinGAN cascade (0 is the lowest GAN)
         self.index_scale = index_scale
-        self.patch_shape = patch_shape
-        self.get_img_from_scale = get_img_from_scale
-        self.get_reconstructed_img_from_scale = get_reconstructed_img_from_scale
+        self.get_img_from_scale = get_generated_img_at_scale
+        self.get_reconstructed_img_from_scale = get_reconstructed_img_at_scale
         self.reconstruction_noise = reconstruction_noise
         self.critic_steps = critic_steps
         self.gen_steps = gen_steps
@@ -63,10 +59,26 @@ class SinGANSingleScale:
         self.n_conv_blocks = n_conv_blocks
 
         # Number of filters in the convolutional layers. 32 in the lowest scale, then it doubles every 4 scales
-        self.n_conv_filters = (self.index_scale % 4)*32
+        self.n_conv_filters = (self.index_scale % 4) * 32
 
         self.critic = self._get_critic_model()
         self.generator = self._get_generator_model()
+
+    # ----------------------------------------
+    #          PUBLIC UTILITY FUNCTIONS
+    # ----------------------------------------
+
+    def generate_image(self, noise, input_image=None):
+        """
+        Use the GAN generator to generate an image
+        :param noise: Noise to use as input to the GAN
+        :param input_image: Input image upsampled from the previous scale. None if the GAN is at the lowest scale in the hierarchy
+        :return:
+        """
+        if self.index_scale == 0:
+            return self.generator(noise)
+        else:
+            return self.generator(noise, input_image)
 
     # ----------------------------------------
     #                TRAINING
@@ -142,10 +154,8 @@ class SinGANSingleScale:
         list_c_loss = []
         list_g_loss = []
 
-        for i in tqdm(range(epochs)):
-            # TODO Stampare loss durante il training (accanto a progressbar di tqdm)
-            print(f"-------- Epoch {i} --------")
-
+        t = trange(epochs, desc="Epoch ")
+        for i in t:
             # Train the critic
             for _ in range(self.critic_steps):
                 # Generate a single fake image to be evaluated by the critic
@@ -155,15 +165,16 @@ class SinGANSingleScale:
             # Train the generator
             for _ in range(self.gen_steps):
                 fake_image = self._generate_image()
-                fake_patches = get_all_patches_from_img(fake_image, self.patch_shape[0], self.patch_shape[1])
-                g_loss = self._train_generator_step(fake_patches)
+                g_loss = self._train_generator_step(fake_image)
 
             list_c_loss.append(c_loss)
             list_g_loss.append(g_loss)
 
-            print(f"Critic Loss: {list_c_loss[-1]} - Gen. Loss: {list_g_loss[-1]}")
+            # Print the losses
+            t.set_postfix_str(f"Gen. Loss: {list_g_loss[-1]} - Critic Loss: {list_c_loss[-1]}")
+            t.refresh()
 
-            singan_monitor.save_imgs_on_epoch_end(epoch=i)
+            singan_monitor.save_imgs_on_epoch_end(index_scale=self.index_scale, epoch=i)
 
         return list_c_loss, list_g_loss
 
@@ -182,7 +193,8 @@ class SinGANSingleScale:
             # Calculate the critic loss using the fake and real image logits
             wass_loss = critic_wass_loss(real_score=real_logits, fake_score=fake_logits)
             # Calculate the gradient penalty
-            gp = gradient_penalty_loss(batch_size=1, real_images=batch_real_img, fake_images=batch_fake_img, critic=self.critic)
+            gp = gradient_penalty_loss(batch_size=1, real_images=batch_real_img, fake_images=batch_fake_img,
+                                       critic=self.critic)
             # Add the gradient penalty to the original discriminator loss
             loss = wass_loss + gp * self.gp_weight
 
@@ -210,7 +222,7 @@ class SinGANSingleScale:
             rec_loss = reconstruction_loss(reconstructed, real_img)
             # TODO update the noise sigma
 
-        loss = adv_loss + self.rec_loss_weight*rec_loss
+        loss = adv_loss + self.rec_loss_weight * rec_loss
         # Get the gradients w.r.t the generator loss
         gen_gradient = tape.gradient(loss, self.generator.trainable_variables)
         # Update the weights of the generator using the generator optimizer
@@ -308,7 +320,7 @@ class SinGANSingleScale:
     # ----------------------------------------
 
     def _get_critic_model(self):
-        patch = Input(shape=self.patch_shape)
+        patch = Input(shape=self.img_shape)
         x_out = patch
         for i in range(self.n_conv_blocks):
             activation = LeakyReLU(0.2)
