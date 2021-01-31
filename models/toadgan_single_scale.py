@@ -176,9 +176,12 @@ class TOADGANSingleScale:
 
             singan_monitor.save_imgs_on_epoch_end(index_scale=self.index_scale, epoch=i)
 
+        # Plot images on training end
+        singan_monitor.save_imgs_on_epoch_end(index_scale=self.index_scale, epoch=epochs)
+
         return list_c_loss, list_g_loss
 
-    # @tf.function
+    @tf.function
     def _train_critic_step(self, real_img, fake_img):
         # Convert images to batch of images with one elements (to be fed to the models and the loss functions)
         batch_real_img = real_img[np.newaxis, :, :, :]
@@ -207,7 +210,7 @@ class TOADGANSingleScale:
 
         return loss
 
-    # @tf.function
+    @tf.function
     def _train_generator_step(self, fake_img, real_img):
         # Convert images to batch of images with one elements (to be fed to the models and the loss functions)
         batch_fake_img = fake_img[np.newaxis, :, :, :]

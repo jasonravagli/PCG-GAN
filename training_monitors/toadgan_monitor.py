@@ -8,7 +8,7 @@ from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 
 
 class TOADGANMonitor:
-    def __init__(self, path_imgs_dir, singan, list_tokens_in_level, epochs_interval=20, num_img=3):
+    def __init__(self, path_imgs_dir, singan, list_tokens_in_level, epochs_interval=100, num_img=3):
         self.singan = singan
         self.list_tokens_in_level = list_tokens_in_level
         self.num_img = num_img
