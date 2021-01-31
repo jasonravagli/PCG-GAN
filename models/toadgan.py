@@ -1,9 +1,11 @@
+import os
 import time
 import datetime
 
 import tensorflow as tf
 
 from config import cfg
+from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 from levels.utils.downsampling import downsample_image
 from models.toadgan_single_scale import TOADGANSingleScale
 from training_monitors.toadgan_monitor import TOADGANMonitor
@@ -14,23 +16,26 @@ class TOADGAN:
         self.n_scales = 0
         self.scaled_images = None
         self.list_gans = None
-        self.dict_tokens = None
-        self.token_list = None
+        self.tokens_in_lvl = None
         self.token_hierarchy = None
 
-    def train(self, training_image, epochs, dict_tokens, token_list, token_hierarchy):
-        self.dict_tokens = dict_tokens
-        self.token_list = token_list
+    def train(self, training_image, epochs, tokens_in_lvl, token_hierarchy):
+        self.tokens_in_lvl = tokens_in_lvl
         self.token_hierarchy = token_hierarchy
         self.scaled_images = self._get_scaled_training_image(training_image)
         self.n_scales = len(self.scaled_images)
         # Reverse the scaled images order: index 0 is for the lowest scale
         self.scaled_images.reverse()
 
+        # Save the scaled images
+        for i in range(self.n_scales):
+            img = ascii_to_rgb(one_hot_to_ascii_level(self.scaled_images[i], tokens_in_lvl))
+            img.save(os.path.join(cfg.PATH.TRAIN.SCALED_IMGS, f"scale-{i}.png"), format="png")
+
         print(f"Calculated {self.n_scales} for the specified training image")
 
         # Create the training monitor to save images
-        training_monitor = TOADGANMonitor()
+        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN_IMGS, singan=self, list_tokens_in_level=tokens_in_lvl)
 
         # Create and train the GAN hierarchy
         self.list_gans = []
@@ -40,16 +45,23 @@ class TOADGAN:
             current_scale_reconstruction_noise = self._get_reconstruction_noise_tensor(index_scale)
             current_scale_gan = TOADGANSingleScale(img_shape=self.scaled_images[index_scale].shape,
                                                    index_scale=index_scale,
-                                                   get_generated_img_at_scale=self._get_generated_img_at_scale,
+                                                   get_generated_img_at_scale=self.generate_img_at_scale,
                                                    get_reconstructed_img_at_scale=self._get_reconstructed_image_at_scale,
                                                    reconstruction_noise=current_scale_reconstruction_noise)
+            self.list_gans.append(current_scale_gan)
+
+            print(f"--------- GENERATOR SCALE {index_scale} ---------")
+            current_scale_gan.generator.summary()
+
+            print(f"--------- CRITIC SCALE {index_scale} ---------")
+            current_scale_gan.critic.summary()
+
             print(f"--------- START TRAINING GAN AT SCALE {index_scale} ---------")
             start = time.time()
             current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
             end = time.time()
             print(f"--------- TRAINING ENDED {index_scale} - Took {datetime.timedelta(seconds=int(end-start))} ---------")
 
-            self.list_gans.append(current_scale_gan)
         print(f"\n--------- END TRAINING TOAD-GAN ---------")
 
     def generate_image(self):
@@ -57,18 +69,9 @@ class TOADGAN:
         Use the gan hierarchy to generate an image
         :return:
         """
-        index_curr_scale = 0
-        generated_img = self.list_gans[index_curr_scale].generate_image(self._get_random_noise_tensor(index_curr_scale))
+        self.generate_img_at_scale(self.n_scales - 1)
 
-        index_curr_scale += 1
-        while index_curr_scale < self.n_scales:
-            generated_img = self.list_gans[index_curr_scale].generate_image(self._get_random_noise_tensor(index_curr_scale),
-                                                                            generated_img)
-            index_curr_scale += 1
-
-        return generated_img
-
-    def _get_generated_img_at_scale(self, index_scale):
+    def generate_img_at_scale(self, index_scale):
         """
         Use the gan hierarchy to generate an image at the specified scale
         :param index_scale:
@@ -81,10 +84,10 @@ class TOADGAN:
         index_curr_scale += 1
         while index_curr_scale <= index_scale:
             generated_img = self.list_gans[index_curr_scale].generate_image(self._get_random_noise_tensor(index_curr_scale),
-                                                                                            generated_img)
+                                                                            generated_img)
             index_curr_scale += 1
 
-        return generated_img
+        return generated_img[0]
 
     def _get_random_noise_tensor(self, index_scale):
         """
@@ -125,9 +128,11 @@ class TOADGAN:
         :return:
         """
         if index_scale == 0:
-            return None
+            return tf.random.normal(
+                shape=(1, *self.scaled_images[0].shape)
+            )
 
-        return tf.zeros(self.scaled_images[index_scale].shape)
+        return tf.zeros((1, *self.scaled_images[index_scale].shape))
 
     def _get_scaled_training_image(self, training_image):
         """
@@ -140,12 +145,12 @@ class TOADGAN:
         aspect_ratio = training_image.shape[0]/float(training_image.shape[1])
         scaled_images = [training_image]
         current_scale_height = training_image.shape[0]
-        while current_scale_height > cfg.CONV_RECEPTIVE_FIELD*2:
-            current_scale_height *= cfg.SCALE_FACTOR
+        while current_scale_height > cfg.CONV_RECEPTIVE_FIELD:
+            current_scale_height = int(current_scale_height*cfg.SCALE_FACTOR)
             current_scale_width = int(current_scale_height/aspect_ratio)
 
-            scaled_image = downsample_image(training_image, (current_scale_height, current_scale_width), self.token_list,
-                                            self.token_hierarchy)
+            scaled_image = downsample_image(training_image, (current_scale_height, current_scale_width),
+                                            self.tokens_in_lvl, self.token_hierarchy)
 
             scaled_images.append(scaled_image)
 

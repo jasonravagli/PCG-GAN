@@ -9,7 +9,7 @@ def downsample_image(image, target_shape, token_list, token_hierarchy):
 
     image : Original level to be scaled down. Expects a numpy 3D tensor
     target_shape: The shape (height and width) to which the image will be scaled down
-    token_list : List of tokens appearing in the image in order of channels from image.
+    token_list : List of ASCII tokens appearing in the image in order of channels from image.
     token_hierarchy: List of (group of) tokens that determines the tokens relevance (from the less to the more relevant).
     It is a list of dictionaries.
     """
@@ -20,8 +20,8 @@ def downsample_image(image, target_shape, token_list, token_hierarchy):
     # Init output level
     img_scaled = np.zeros(bil_scaled.shape, dtype=np.float32)
 
-    for x in range(bil_scaled.shape[-2]):
-        for y in range(bil_scaled.shape[-1]):
+    for x in range(bil_scaled.shape[0]):
+        for y in range(bil_scaled.shape[1]):
             curr_h = 0
             curr_tokens = [tok for tok in token_list if bil_scaled[x, y, token_list.index(tok)] > 0]
             for h in range(len(token_hierarchy)):  # find out which hierarchy group we're in
@@ -29,7 +29,7 @@ def downsample_image(image, target_shape, token_list, token_hierarchy):
                     if token in curr_tokens:
                         curr_h = h
 
-            for t in range(bil_scaled.shape[-3]):
+            for t in range(bil_scaled.shape[2]):
                 if not (token_list[t] in token_hierarchy[curr_h].keys()):
                     # if this token is not on the correct hierarchy group, set to 0
                     img_scaled[x, y, t] = 0

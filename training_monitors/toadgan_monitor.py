@@ -1,8 +1,10 @@
 import os
 from tensorflow.keras.preprocessing.image import array_to_img
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from levels.utils.conversion import one_hot_to_ascii, ascii_to_rgb
+from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 
 
 class TOADGANMonitor:
@@ -28,14 +30,14 @@ class TOADGANMonitor:
             fig, axs = plt.subplots(1, self.num_img, figsize=(12, 9))
 
             for i in range(self.num_img):
-                image_one_hot = self.singan.generate_image()
-                image_tokenized = one_hot_to_ascii(image_one_hot, self.list_tokens_in_level)
+                image_one_hot = self.singan.generate_img_at_scale(index_scale)
+                image_tokenized = one_hot_to_ascii_level(image_one_hot, self.list_tokens_in_level)
                 image_rgb = ascii_to_rgb(image_tokenized)
 
                 img = array_to_img(image_rgb)
                 axs[i].imshow(img)
 
-            path_folder = os.path.join(self.path_imgs_dir, index_scale)
+            path_folder = os.path.join(self.path_imgs_dir, str(index_scale))
             if not os.path.isdir(path_folder):
                 os.mkdir(path_folder)
 

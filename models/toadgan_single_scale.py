@@ -59,7 +59,7 @@ class TOADGANSingleScale:
         self.n_conv_blocks = n_conv_blocks
 
         # Number of filters in the convolutional layers. 32 in the lowest scale, then it doubles every 4 scales
-        self.n_conv_filters = (self.index_scale % 4) * 32
+        self.n_conv_filters = ((self.index_scale % 4) + 1) * 32
 
         self.critic = self._get_critic_model()
         self.generator = self._get_generator_model()
@@ -165,7 +165,7 @@ class TOADGANSingleScale:
             # Train the generator
             for _ in range(self.gen_steps):
                 fake_image = self._generate_image()
-                g_loss = self._train_generator_step(fake_image)
+                g_loss = self._train_generator_step(fake_image, real_image)
 
             list_c_loss.append(c_loss)
             list_g_loss.append(g_loss)
@@ -178,7 +178,7 @@ class TOADGANSingleScale:
 
         return list_c_loss, list_g_loss
 
-    @tf.function
+    # @tf.function
     def _train_critic_step(self, real_img, fake_img):
         # Convert images to batch of images with one elements (to be fed to the models and the loss functions)
         batch_real_img = real_img[np.newaxis, :, :, :]
@@ -186,9 +186,9 @@ class TOADGANSingleScale:
 
         with tf.GradientTape() as tape:
             # Get the logits for the fake patches
-            fake_logits = self.critic(fake_img, training=True)
+            fake_logits = self.critic(batch_fake_img, training=True)
             # Get the logits for the real patches
-            real_logits = self.critic(real_img, training=True)
+            real_logits = self.critic(batch_real_img, training=True)
 
             # Calculate the critic loss using the fake and real image logits
             wass_loss = critic_wass_loss(real_score=real_logits, fake_score=fake_logits)
@@ -207,7 +207,7 @@ class TOADGANSingleScale:
 
         return loss
 
-    @tf.function
+    # @tf.function
     def _train_generator_step(self, fake_img, real_img):
         # Convert images to batch of images with one elements (to be fed to the models and the loss functions)
         batch_fake_img = fake_img[np.newaxis, :, :, :]
@@ -222,7 +222,7 @@ class TOADGANSingleScale:
             rec_loss = reconstruction_loss(reconstructed, real_img)
             # TODO update the noise sigma
 
-        loss = adv_loss + self.rec_loss_weight * rec_loss
+            loss = adv_loss + self.rec_loss_weight * rec_loss
         # Get the gradients w.r.t the generator loss
         gen_gradient = tape.gradient(loss, self.generator.trainable_variables)
         # Update the weights of the generator using the generator optimizer
@@ -241,11 +241,11 @@ class TOADGANSingleScale:
 
         # Generate a single fake image from the noise and an upsampled generated image from previous scale (if we are not at the lowest scale)
         if self.index_scale == 0:
-            fake_image = self.generator(noise, training=True)
+            fake_image = self.generator(noise, training=True)[0]
         else:
             # Generate an image with the generator from the previous scale and upsample it
             img_from_prev_scale = self._get_upsampled_img_from_prev_scale()
-            fake_image = self.generator([noise, img_from_prev_scale], training=True)
+            fake_image = self.generator([noise, img_from_prev_scale], training=True)[0]
 
         return fake_image
 
@@ -279,7 +279,7 @@ class TOADGANSingleScale:
     # ----------------------------------------
 
     def _conv_block(self, x_in, n_conv_filters, activation):
-        x_out = Conv2D(filters=n_conv_filters, kernel_size=(3, 3), strides=(1, 1), padding=None, activation=None)(x_in)
+        x_out = Conv2D(filters=n_conv_filters, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None)(x_in)
         x_out = BatchNormalization()(x_out)
         x_out = activation(x_out)
 
@@ -302,7 +302,8 @@ class TOADGANSingleScale:
 
         # It is not clear which activation to use in the final convolutional block
         activation = Activation(activations.linear)
-        x_out = self._conv_block(x_out, self.n_conv_filters, activation)
+        # The last convolutional block must have the same number of filters as the training image channels
+        x_out = self._conv_block(x_out, self.img_shape[-1], activation)
 
         # If we are not at the coarsest scale the output have to be summed up with the image generated at the previous scale
         # Softmax is used as final layer (we are treating tensors of one-hot encoded vectors, not natural images)
