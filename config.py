@@ -19,6 +19,7 @@ _C.PATH.TRAIN = CN()
 _C.PATH.TRAIN.DIR = os.path.join(_C.PATH.RESOURCES, "training")
 _C.PATH.TRAIN.SCALED_IMGS = os.path.join(_C.PATH.TRAIN.DIR, "scaled-imgs")
 _C.PATH.TRAIN.MONITOR_IMGS = os.path.join(_C.PATH.TRAIN.DIR, "training-imgs")
+_C.PATH.TRAIN.LOSSES = os.path.join(_C.PATH.TRAIN.DIR, "losses")
 
 _C.LEVEL = CN()
 _C.LEVEL.TYPE = "mario"

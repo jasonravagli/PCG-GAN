@@ -8,7 +8,7 @@ from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 
 
 class TOADGANMonitor:
-    def __init__(self, path_imgs_dir, singan, list_tokens_in_level, epochs_interval=20, num_img=6):
+    def __init__(self, path_imgs_dir, singan, list_tokens_in_level, epochs_interval=20, num_img=3):
         self.singan = singan
         self.list_tokens_in_level = list_tokens_in_level
         self.num_img = num_img
@@ -27,18 +27,12 @@ class TOADGANMonitor:
         """
         # Generate and save the images only at the chosen epochs checkpoints
         if epoch % self.epochs_interval == 0:
-            fig, axs = plt.subplots(1, self.num_img, figsize=(12, 9))
+            path_folder = os.path.join(self.path_imgs_dir, str(index_scale))
+            if not os.path.isdir(path_folder):
+                os.mkdir(path_folder)
 
             for i in range(self.num_img):
                 image_one_hot = self.singan.generate_img_at_scale(index_scale)
                 image_tokenized = one_hot_to_ascii_level(image_one_hot, self.list_tokens_in_level)
                 image_rgb = ascii_to_rgb(image_tokenized)
-
-                img = array_to_img(image_rgb)
-                axs[i].imshow(img)
-
-            path_folder = os.path.join(self.path_imgs_dir, str(index_scale))
-            if not os.path.isdir(path_folder):
-                os.mkdir(path_folder)
-
-            fig.savefig(os.path.join(path_folder, f"generated_img_{epoch}.png"))
+                image_rgb.save(os.path.join(path_folder, f"epoch-{epoch}-{i}.png"), format="png")

@@ -9,6 +9,7 @@ from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 from levels.utils.downsampling import downsample_image
 from models.toadgan_single_scale import TOADGANSingleScale
 from training_monitors.toadgan_monitor import TOADGANMonitor
+from utils import plot_losses
 
 
 class TOADGAN:
@@ -35,7 +36,7 @@ class TOADGAN:
         print(f"Calculated {self.n_scales} for the specified training image")
 
         # Create the training monitor to save images
-        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN_IMGS, singan=self, list_tokens_in_level=tokens_in_lvl)
+        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN.MONITOR_IMGS, singan=self, list_tokens_in_level=tokens_in_lvl)
 
         # Create and train the GAN hierarchy
         self.list_gans = []
@@ -58,8 +59,10 @@ class TOADGAN:
 
             print(f"--------- START TRAINING GAN AT SCALE {index_scale} ---------")
             start = time.time()
-            current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
+            c_loss, g_loss = current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
             end = time.time()
+            # Save training curves fot the current scale
+            plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_loss, g_loss)
             print(f"--------- TRAINING ENDED {index_scale} - Took {datetime.timedelta(seconds=int(end-start))} ---------")
 
         print(f"\n--------- END TRAINING TOAD-GAN ---------")
@@ -83,8 +86,10 @@ class TOADGAN:
 
         index_curr_scale += 1
         while index_curr_scale <= index_scale:
+            upsampled = tf.image.resize(generated_img, (self.scaled_images[index_curr_scale].shape[0], self.scaled_images[index_curr_scale].shape[1]),
+                                        method=tf.image.ResizeMethod.BILINEAR)
             generated_img = self.list_gans[index_curr_scale].generate_image(self._get_random_noise_tensor(index_curr_scale),
-                                                                            generated_img)
+                                                                            upsampled)
             index_curr_scale += 1
 
         return generated_img[0]
@@ -114,8 +119,10 @@ class TOADGAN:
 
         index_curr_scale += 1
         while index_curr_scale <= index_scale:
+            upsampled = tf.image.resize(reconstructed_img, (self.scaled_images[index_curr_scale].shape[0], self.scaled_images[index_curr_scale].shape[1]),
+                                        method=tf.image.ResizeMethod.BILINEAR)
             reconstructed_img = self.list_gans[index_curr_scale].generate_image(self._get_reconstruction_noise_tensor(index_curr_scale),
-                                                                                reconstructed_img)
+                                                                                upsampled)
             index_curr_scale += 1
 
         return reconstructed_img

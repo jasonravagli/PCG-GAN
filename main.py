@@ -16,15 +16,19 @@ def get_tokens_data_structure_from_level_type(lvl_type):
 
 
 def clean_training_dirs():
-    shutil.rmtree(cfg.PATH.TRAIN.DIR)
+    if os.path.isdir(cfg.PATH.TRAIN.DIR):
+        shutil.rmtree(cfg.PATH.TRAIN.DIR)
     os.mkdir(cfg.PATH.TRAIN.DIR)
     os.mkdir(cfg.PATH.TRAIN.SCALED_IMGS)
     os.mkdir(cfg.PATH.TRAIN.MONITOR_IMGS)
+    os.mkdir(cfg.PATH.TRAIN.LOSSES)
 
 
 if __name__ == "__main__":
     # Lock the settings
     cfg.freeze()
+
+    clean_training_dirs()
 
     tk_groups, tk_hierarchy, tk_replace = get_tokens_data_structure_from_level_type(cfg.LEVEL.TYPE)
 
@@ -33,4 +37,4 @@ if __name__ == "__main__":
 
     # Create and train the TOAD-GAN
     toad_gan = TOADGAN()
-    toad_gan.train(oh_level, 1, tokens_in_lvl=tk_in_lvl, token_hierarchy=tk_hierarchy)
+    toad_gan.train(oh_level, 2, tokens_in_lvl=tk_in_lvl, token_hierarchy=tk_hierarchy)

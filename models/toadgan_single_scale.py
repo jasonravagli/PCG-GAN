@@ -78,7 +78,7 @@ class TOADGANSingleScale:
         if self.index_scale == 0:
             return self.generator(noise)
         else:
-            return self.generator(noise, input_image)
+            return self.generator([noise, input_image])
 
     # ----------------------------------------
     #                TRAINING
@@ -265,13 +265,13 @@ class TOADGANSingleScale:
         return reconstructed
 
     def _get_upsampled_img_from_prev_scale(self):
-        generated = self.get_img_from_scale()
-        upsampled = tf.image.resize(generated, self.img_shape, method=tf.image.ResizeMethod.BILINEAR)
+        generated = self.get_img_from_scale(self.index_scale - 1)
+        upsampled = tf.image.resize(generated, (self.img_shape[0], self.img_shape[1]), method=tf.image.ResizeMethod.BILINEAR)
         return upsampled
 
     def _get_upsampled_reconstructed_img_from_prev_scale(self):
-        reconstructed = self.get_reconstructed_img_from_scale()
-        upsampled = tf.image.resize(reconstructed, self.img_shape, method=tf.image.ResizeMethod.BILINEAR)
+        reconstructed = self.get_reconstructed_img_from_scale(self.index_scale - 1)
+        upsampled = tf.image.resize(reconstructed, (self.img_shape[0], self.img_shape[1]), method=tf.image.ResizeMethod.BILINEAR)
         return upsampled
 
     # ----------------------------------------
