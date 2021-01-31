@@ -25,7 +25,8 @@ def clean_training_dirs():
 
 
 if __name__ == "__main__":
-    # Lock the settings
+    # Config from file and lock the settings
+    cfg.merge_from_file("config.yaml")
     cfg.freeze()
 
     clean_training_dirs()
@@ -37,4 +38,4 @@ if __name__ == "__main__":
 
     # Create and train the TOAD-GAN
     toad_gan = TOADGAN()
-    toad_gan.train(oh_level, 2, tokens_in_lvl=tk_in_lvl, token_hierarchy=tk_hierarchy)
+    toad_gan.train(oh_level, cfg.EPOCHS, tokens_in_lvl=tk_in_lvl, token_hierarchy=tk_hierarchy)
