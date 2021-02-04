@@ -9,7 +9,7 @@ from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 from levels.utils.downsampling import downsample_image
 from models.toadgan_single_scale import TOADGANSingleScale
 from training_monitors.toadgan_monitor import TOADGANMonitor
-from utils import plot_losses
+from utils import plot_losses, generate_noise
 
 
 class TOADGAN:
@@ -21,6 +21,10 @@ class TOADGAN:
         self.token_hierarchy = None
 
     def train(self, training_image, epochs, tokens_in_lvl, token_hierarchy):
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        # Disable first GPU
+        tf.config.experimental.set_visible_devices(physical_devices[1:], 'GPU')
+
         self.tokens_in_lvl = tokens_in_lvl
         self.token_hierarchy = token_hierarchy
         self.scaled_images = self._get_scaled_training_image(training_image)
@@ -36,7 +40,7 @@ class TOADGAN:
         print(f"Calculated {self.n_scales} for the specified training image")
 
         # Create the training monitor to save images
-        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN.MONITOR_IMGS, singan=self, list_tokens_in_level=tokens_in_lvl)
+        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN.MONITOR_IMGS, toadgan=self, list_tokens_in_level=tokens_in_lvl)
 
         # Create and train the GAN hierarchy
         self.list_gans = []
@@ -47,7 +51,7 @@ class TOADGAN:
             current_scale_gan = TOADGANSingleScale(img_shape=self.scaled_images[index_scale].shape,
                                                    index_scale=index_scale,
                                                    get_generated_img_at_scale=self.generate_img_at_scale,
-                                                   get_reconstructed_img_at_scale=self._get_reconstructed_image_at_scale,
+                                                   get_reconstructed_img_at_scale=self.get_reconstructed_image_at_scale,
                                                    reconstruction_noise=current_scale_reconstruction_noise)
             self.list_gans.append(current_scale_gan)
 
@@ -59,12 +63,16 @@ class TOADGAN:
 
             print(f"--------- START TRAINING GAN AT SCALE {index_scale} ---------")
             start = time.time()
-            c_loss, g_loss = current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
+            # c_loss, g_loss = current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
+            c_wass_loss, c_gp_loss, g_adv_loss, g_rec_loss = current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
             end = time.time()
             # Save training curves fot the current scale
-            plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_loss, g_loss)
+            # plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_loss, g_loss)
+            plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_wass_loss, c_gp_loss, g_adv_loss, g_rec_loss)
             print(f"--------- TRAINING ENDED {index_scale} - Took {datetime.timedelta(seconds=int(end-start))} ---------")
 
+        # Save the reconstructed images
+        training_monitor.save_reconstructed_images()
         print(f"\n--------- END TRAINING TOAD-GAN ---------")
 
     def generate_image(self):
@@ -100,14 +108,11 @@ class TOADGAN:
         :return:
         """
         # Get a single noise tensor
-        # TODO Read the article about the noise generation
-        noise = tf.random.normal(
-            shape=(1, *self.scaled_images[index_scale].shape)
-        )
+        noise = generate_noise((1, *self.scaled_images[index_scale].shape))
 
         return noise
 
-    def _get_reconstructed_image_at_scale(self, index_scale):
+    def get_reconstructed_image_at_scale(self, index_scale):
         """
         Use the gan hierarchy to reconstruct the original training image at the specified scale
         :param index_scale:

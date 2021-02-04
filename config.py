@@ -8,7 +8,6 @@ _C = CN()
 # Receptive field of the convolutional filters in the last convolutional block
 _C.CONV_RECEPTIVE_FIELD = 11
 _C.SCALE_FACTOR = 0.8
-_C.EPOCHS = 1000
 
 _C.PATH = CN()
 _C.PATH.ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -25,5 +24,8 @@ _C.PATH.TRAIN.LOSSES = os.path.join(_C.PATH.TRAIN.DIR, "losses")
 _C.LEVEL = CN()
 _C.LEVEL.TYPE = "mario"
 
+_C.TRAIN = CN()
+_C.TRAIN.EPOCHS = 1000
+_C.TRAIN.NOISE_UPDATE = 0.1
 
 cfg = _C

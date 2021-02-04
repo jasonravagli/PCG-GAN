@@ -23,7 +23,8 @@ def generator_wass_loss(fake_score):
     :param fake_score:
     :return:
     """
-    return tf.reduce_mean(fake_score)
+    # return tf.reduce_mean(fake_score)
+    return -tf.reduce_mean(fake_score)
 
 
 def critic_wass_loss(real_score, fake_score):
@@ -33,7 +34,8 @@ def critic_wass_loss(real_score, fake_score):
     :param fake_score:
     :return:
     """
-    return tf.reduce_mean(real_score) - tf.reduce_mean(fake_score)
+    # return tf.reduce_mean(real_score) - tf.reduce_mean(fake_score)
+    return -tf.reduce_mean(real_score) + tf.reduce_mean(fake_score)
 
 
 def gradient_penalty_loss(batch_size, real_images, fake_images, critic):
@@ -45,7 +47,11 @@ def gradient_penalty_loss(batch_size, real_images, fake_images, critic):
     # Get the interpolated image
     alpha = tf.random.normal([batch_size, 1, 1, 1], 0.0, 1.0)
     diff = real_images - fake_images
-    interpolated = real_images + alpha * diff
+    # interpolated = real_images + alpha * diff
+    # diff = fake_images - real_images
+    # interpolated = real_images + alpha * diff
+
+    interpolated = alpha * real_images + ((1 - alpha) * fake_images)
 
     with tf.GradientTape() as gp_tape:
         gp_tape.watch(interpolated)
@@ -57,6 +63,7 @@ def gradient_penalty_loss(batch_size, real_images, fake_images, critic):
     # 3. Calculate the norm of the gradients.
     norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2, 3]))
     gp = tf.reduce_mean((norm - 1.0) ** 2)
+    # gp = tf.reduce_mean((tf.norm(grads, axis=1) - 1) ** 2)
     return gp
 
 

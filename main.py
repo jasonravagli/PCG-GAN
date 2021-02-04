@@ -38,4 +38,4 @@ if __name__ == "__main__":
 
     # Create and train the TOAD-GAN
     toad_gan = TOADGAN()
-    toad_gan.train(oh_level, cfg.EPOCHS, tokens_in_lvl=tk_in_lvl, token_hierarchy=tk_hierarchy)
+    toad_gan.train(oh_level, cfg.TRAIN.EPOCHS, tokens_in_lvl=tk_in_lvl, token_hierarchy=tk_hierarchy)
