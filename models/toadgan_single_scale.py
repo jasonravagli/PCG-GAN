@@ -2,13 +2,15 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras import activations
-from tensorflow.keras.layers import Activation, Add, Softmax
+from tensorflow.keras.layers import Activation, Add, Softmax, Layer
 from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Flatten, Dense, LeakyReLU
 from tensorflow.keras.optimizers import Adam
+from tensorflow_core.python.keras.layers import ZeroPadding2D
 from tqdm import trange
 
 from config import cfg
 from losses import generator_wass_loss, critic_wass_loss, gradient_penalty_loss, reconstruction_loss
+from models.layer_instance_norm import InstanceNorm
 from utils import generate_noise
 
 
@@ -62,26 +64,42 @@ class TOADGANSingleScale:
         self.n_conv_blocks = n_conv_blocks
 
         # Number of filters in the convolutional layers. 32 in the lowest scale, then it doubles every 4 scales
-        self.n_conv_filters = ((self.index_scale//4) + 1) * 32
+        self.n_conv_filters = 64#((self.index_scale//4) + 1) * 32
+
+        # Calculate the shape of the image in input to the models including the padding
+        self.pad_size = 1 * self.n_conv_blocks  # As kernel size is always 3 currently, padsize goes up by one per conv layer
+        # self.input_shape_with_pad = (self.img_shape[0] + 2 * self.pad_size, self.img_shape[1] + 2 * self.pad_size, self.img_shape[2])
 
         self.critic = self._get_critic_model()
         self.generator = self._get_generator_model()
+
+    def init_from_previous_scale(self, prev_gan):
+        self.critic.set_weights(prev_gan.critic.get_weights())
+        self.generator.set_weights(prev_gan.generator.get_weights())
 
     # ----------------------------------------
     #          PUBLIC UTILITY FUNCTIONS
     # ----------------------------------------
 
-    def generate_image(self, noise, input_image=None):
+    def generate_image(self, img_from_prev_scale=None):
         """
         Use the GAN generator to generate an image
         :param noise: Noise to use as input to the GAN
-        :param input_image: Input image upsampled from the previous scale. None if the GAN is at the lowest scale in the hierarchy
+        :param img_from_prev_scale: Input image upsampled from the previous scale. None if the GAN is at the lowest scale in the hierarchy
         :return:
         """
+        noise = self.noise_amplitude * generate_noise((1, *self.img_shape))
+
         if self.index_scale == 0:
             return self.generator(noise)
         else:
-            return self.generator([noise, input_image])
+            return self.generator([noise, img_from_prev_scale])
+
+    def reconstruct_image(self, img_from_prev_scale=None):
+        if self.index_scale == 0:
+            return self.generator(self.reconstruction_noise)
+        else:
+            return self.generator([self.reconstruction_noise, img_from_prev_scale])
 
     # ----------------------------------------
     #                TRAINING
@@ -94,13 +112,21 @@ class TOADGANSingleScale:
         list_c_gp_loss = []
         list_g_adv_loss = []
         list_g_rec_loss = []
+        list_lr = []
+
         if self.index_scale == 0:
             rec_from_prev_scale = None
         else:
             rec_from_prev_scale = self._get_upsampled_reconstructed_img_from_prev_scale()
 
         self._calculate_noise_amplitude(real_image, rec_from_prev_scale)
+        print(f"Noise amplitude at scale {self.index_scale}: {self.noise_amplitude}")
 
+        # Setup optimizers with learning rate decay
+        self.c_optimizer = Adam(learning_rate=tf.keras.optimizers.schedules.PiecewiseConstantDecay(
+            [1600, 2500], [5e-4, 5e-5, 5e-6]), beta_1=0.5, beta_2=0.999)
+        self.g_optimizer = Adam(learning_rate=tf.keras.optimizers.schedules.PiecewiseConstantDecay(
+            [1600, 2500], [5e-4, 5e-5, 5e-6]), beta_1=0.5, beta_2=0.999)
         t = trange(epochs, desc="Epoch ")
         for i in t:
             # Get a single noise tensor to use for all the training steps of the current epoch
@@ -109,21 +135,28 @@ class TOADGANSingleScale:
             # ----- Train the critic -----
             for _ in range(self.critic_steps):
                 # Generate a single fake image to be evaluated by the critic using the fixed noise
-                fake_image = self._generate_image_for_training(noise)
-                c_wass_loss, c_gp_loss = self._train_critic_step(real_image, fake_image)
+                # fake_image = self._generate_image_for_training(noise)
+                img_from_prev_scale = self._get_upsampled_img_from_prev_scale()
+                img_from_prev_scale = img_from_prev_scale[np.newaxis, :, :, :]
+                c_wass_loss, c_gp_loss = self._train_critic_step(real_image, noise, img_from_prev_scale)
+
+                list_c_wass_loss.append(c_wass_loss)
+                list_c_gp_loss.append(c_gp_loss)
 
             # ----- Train the generator -----
-            img_from_prev_scale = self._get_upsampled_img_from_prev_scale()
+            # img_from_prev_scale = self._get_upsampled_img_from_prev_scale()
             for _ in range(self.gen_steps):
-                fake_image = self._generate_image_for_training(noise, img_from_prev_scale)
-                g_adv_loss, g_rec_loss = self._train_generator_step(fake_image, real_image, rec_from_prev_scale)
+                # fake_image = self._generate_image_for_training(noise, img_from_prev_scale)
+                g_adv_loss, g_rec_loss = self._train_generator_step(real_image, noise, img_from_prev_scale,
+                                                                    rec_from_prev_scale)
+
+                list_g_adv_loss.append(g_adv_loss)
+                list_g_rec_loss.append(g_rec_loss)
 
             # list_c_loss.append(c_loss)
             # list_g_loss.append(g_loss)
-            list_c_wass_loss.append(c_wass_loss)
-            list_c_gp_loss.append(c_gp_loss)
-            list_g_adv_loss.append(g_adv_loss)
-            list_g_rec_loss.append(g_rec_loss)
+
+            list_lr.append(self.g_optimizer.lr(i).numpy())
 
             # Print the losses
             t.set_postfix_str(f"Gen. Loss: {list_g_adv_loss[-1]} - Critic Loss: {list_c_wass_loss[-1]}")
@@ -134,15 +167,17 @@ class TOADGANSingleScale:
         # Plot images on training end
         singan_monitor.save_imgs_on_epoch_end(index_scale=self.index_scale, epoch=epochs)
 
-        return list_c_wass_loss, list_c_gp_loss, list_g_adv_loss, list_g_rec_loss
+        return list_c_wass_loss, list_c_gp_loss, list_g_adv_loss, list_g_rec_loss, list_lr, self.noise_amplitude
 
     @tf.function
-    def _train_critic_step(self, real_img, fake_img):
+    def _train_critic_step(self, real_img, noise, img_from_prev_scale):
         # Convert images to batch of images with one elements (to be fed to the models and the loss functions)
         batch_real_img = real_img[np.newaxis, :, :, :]
-        batch_fake_img = fake_img[np.newaxis, :, :, :]
 
         with tf.GradientTape() as tape:
+            fake_img = self._generate_image_for_training(noise, img_from_prev_scale)
+            batch_fake_img = fake_img[np.newaxis, :, :, :]
+
             # Get the logits for the fake patches
             fake_logits = self.critic(batch_fake_img, training=True)
             # Get the logits for the real patches
@@ -166,11 +201,14 @@ class TOADGANSingleScale:
         return wass_loss, gp * self.gp_weight
 
     @tf.function
-    def _train_generator_step(self, fake_img, real_img, rec_from_prev_scale):
+    def _train_generator_step(self, real_img, noise, img_from_prev_scale, rec_from_prev_scale):
         # Convert images to batch of images with one elements (to be fed to the models and the loss functions)
-        batch_fake_img = fake_img[np.newaxis, :, :, :]
+        # batch_fake_img = fake_img[np.newaxis, :, :, :]
 
         with tf.GradientTape() as tape:
+            fake_img = self._generate_image_for_training(noise, img_from_prev_scale)
+            batch_fake_img = fake_img[np.newaxis, :, :, :]
+
             # Get the discriminator logits for fake patches
             fake_logits = self.critic(batch_fake_img, training=True)
             # Calculate the generator adversarial loss
@@ -195,9 +233,9 @@ class TOADGANSingleScale:
         if self.index_scale == 0:
             fake_image = self.generator(noise, training=True)[0]
         else:
-            if img_from_prev_scale is None:
-                # Generate an image with the generator from the previous scale and upsample it
-                img_from_prev_scale = self._get_upsampled_img_from_prev_scale()
+            # if img_from_prev_scale is None:
+            #     # Generate an image with the generator from the previous scale and upsample it
+            #     img_from_prev_scale = self._get_upsampled_img_from_prev_scale()
             fake_image = self.generator([noise, img_from_prev_scale], training=True)[0]
 
         return fake_image
@@ -238,32 +276,38 @@ class TOADGANSingleScale:
     # ----------------------------------------
 
     def _conv_block(self, x_in, n_conv_filters, activation):
-        x_out = Conv2D(filters=n_conv_filters, kernel_size=(3, 3), strides=(1, 1), padding="same", activation=None,
-                       kernel_initializer=tf.keras.initializers.RandomNormal(mean=0., stddev=0.02))(x_in)
+        x_out = Conv2D(filters=n_conv_filters, kernel_size=(3, 3), strides=(1, 1), padding="valid", use_bias=False,
+                       activation=None, kernel_initializer=tf.keras.initializers.RandomNormal(mean=0., stddev=0.02))(x_in)
         x_out = BatchNormalization(gamma_initializer=tf.keras.initializers.RandomNormal(mean=1., stddev=0.02))(x_out)
+        # x_out = InstanceNorm()(x_out)
         x_out = activation(x_out)
 
         return x_out
 
     def _get_generator_model(self):
         noise = Input(shape=self.img_shape)
+        x_out = ZeroPadding2D(self.pad_size)(noise)
 
         # If we are not at the coarsest scale the generator takes as input the sum of the noise and the image generated
         # at the previous scale
         if self.index_scale != 0:
             prev_scale_img = Input(shape=self.img_shape)
-            x_out = Add()([noise, prev_scale_img])
-        else:
-            x_out = noise
+            prev_scale_img_padded = ZeroPadding2D(self.pad_size)(prev_scale_img)
+            x_out = Add()([x_out, prev_scale_img_padded])
+        # else:
+        #     x_out = noise
 
         for i in range(self.n_conv_blocks - 1):
             activation = LeakyReLU(0.2)
             x_out = self._conv_block(x_out, self.n_conv_filters, activation)
 
         # It is not clear which activation to use in the final convolutional block
-        activation = Activation(activations.linear)
+        # activation = Activation(activations.linear)
         # The last convolutional block must have the same number of filters as the training image channels
-        x_out = self._conv_block(x_out, self.img_shape[-1], activation)
+        # x_out = self._conv_block(x_out, self.img_shape[-1], activation)
+        # No batch normalization and activation on the last convolutional layer
+        x_out = Conv2D(filters=self.img_shape[-1], kernel_size=(3, 3), strides=(1, 1), padding="valid", #activation="tanh",
+                       kernel_initializer=tf.keras.initializers.RandomNormal(mean=0., stddev=0.02))(x_out)
 
         # If we are not at the coarsest scale the output have to be summed up with the image generated at the previous scale
         # Softmax is used as final layer (we are treating tensors of one-hot encoded vectors, not natural images)
@@ -282,8 +326,8 @@ class TOADGANSingleScale:
 
     def _get_critic_model(self):
         patch = Input(shape=self.img_shape)
-        x_out = patch
-        for i in range(self.n_conv_blocks):
+        x_out = ZeroPadding2D(self.pad_size)(patch)
+        for i in range(self.n_conv_blocks - 1):
             activation = LeakyReLU(0.2)
             x_out = self._conv_block(x_out, self.n_conv_filters, activation)
 
@@ -291,7 +335,7 @@ class TOADGANSingleScale:
         # Keep the dropout?
         # x_out = Dropout(0.2)(x_out)
         # x_out = Dense(1)(x_out)
-        x_out = Conv2D(filters=1, kernel_size=(3, 3), strides=(1, 1), padding="same")(x_out)
+        x_out = Conv2D(filters=1, kernel_size=(3, 3), strides=(1, 1), padding="valid")(x_out)
 
         c_model = Model(patch, x_out, name=f"critic_{self.index_scale}")
         return c_model
