@@ -1,0 +1,55 @@
+{
+  "name": "default",
+  "tk-groups-hierarchy": [
+    {
+      "tokens": [
+        {
+          "char": "-",
+          "name": "empty",
+          "image": "empty.png"
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "char": "F",
+          "name": "floor-1",
+          "image": "floor-1.png"
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "char": "W",
+          "name": "wall",
+          "image": "wall.png"
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "char": "G",
+          "name": "goblin",
+          "image": "goblin.png"
+        }
+      ]
+    },
+    {
+      "tokens": [
+        {
+          "char": "D",
+          "name": "door",
+          "image": "door.png"
+        },
+        {
+          "char": "C",
+          "name": "chest",
+          "image": "chest.png"
+        }
+      ]
+    }
+  ]
+}

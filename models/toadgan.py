@@ -9,7 +9,7 @@ from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
 from levels.utils.downsampling import downsample_image
 from models.toadgan_single_scale import TOADGANSingleScale
 from training_monitors.toadgan_monitor import TOADGANMonitor
-from utils import plot_losses, generate_noise, plot_lr, plot_noise_amplitude
+from utils.utils import plot_losses, generate_noise, plot_lr, plot_noise_amplitude
 
 
 class TOADGAN:
