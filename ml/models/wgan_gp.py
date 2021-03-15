@@ -6,7 +6,7 @@ from tensorflow.keras.layers import ZeroPadding2D, Activation, Reshape, UpSampli
 from tqdm import tqdm
 
 from losses import generator_wass_loss, critic_wass_loss, gradient_penalty_loss
-from training_monitors.wgan_monitor import WGANMonitor
+from ml.training_monitors.wgan_monitor import WGANMonitor
 
 
 class WGAN:

@@ -1,17 +1,15 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
-from tensorflow.keras import activations
-from tensorflow.keras.layers import Activation, Add, Softmax, Layer
-from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, Flatten, Dense, LeakyReLU
+from tensorflow.keras.layers import Add, Softmax
+from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, LeakyReLU
 from tensorflow.keras.optimizers import Adam
 from tensorflow_core.python.keras.layers import ZeroPadding2D
 from tqdm import trange
 
 from config import cfg
 from losses import generator_wass_loss, critic_wass_loss, gradient_penalty_loss, reconstruction_loss
-from models.layer_instance_norm import InstanceNorm
-from utils import generate_noise
+from utils.utils import generate_noise
 
 
 class TOADGANSingleScale:

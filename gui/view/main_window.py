@@ -28,9 +28,10 @@ class MainWindow(QMainWindow):
 
         # Add the WidgetTilebox to the left panel
         self.widget_tilebox = WidgetTilebox(tilebox_model)
-        grid_layout = QGridLayout()
-        grid_layout.addWidget(self.widget_tilebox)
-        self.ui.panel_tilebox.setLayout(grid_layout)
+        self.ui.panel_tilebox_scroll_area.layout().addWidget(self.widget_tilebox)
+        # grid_layout = QGridLayout()
+        # grid_layout.addWidget(self.widget_tilebox)
+        # self.ui.panel_tilebox_.setLayout(grid_layout)
 
         self._tilebox_model = tilebox_model
         self._level_model = level_model

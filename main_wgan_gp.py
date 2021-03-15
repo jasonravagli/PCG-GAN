@@ -3,8 +3,8 @@ import os
 from tensorflow.keras.datasets import fashion_mnist
 from tensorflow.keras.optimizers import Adam
 
-from models.wgan_gp import WGAN
-from utils import plot_losses
+from ml.models.wgan_gp import WGAN
+from utils.utils import plot_losses
 
 if __name__ == "__main__":
     ROOT_PATH = os.path.dirname(os.path.dirname(__file__))

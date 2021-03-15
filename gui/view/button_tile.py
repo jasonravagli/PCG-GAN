@@ -17,6 +17,8 @@ class ButtonTile(QToolButton):
 
         self._tile_char = tile_char
 
+        self.setMinimumSize(32, 32)
+        self.setMaximumSize(64, 64)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         icon_pixmap = QPixmap.fromImage(tilebox_model.get_tiles_images()[tile_char])

@@ -6,6 +6,17 @@ from gui.model.level import LevelModel
 from gui.model.tilebox import TileBoxModel
 
 
+def clear_layout(layout):
+    if layout is not None:
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            else:
+                clear_layout(item.layout())
+
+
 def load_image_to_numpy(img_path: str):
     img_size = (16, 16)
 
@@ -34,5 +45,4 @@ def level_model_to_qimage(level_model: LevelModel, tilebox_model: TileBoxModel):
             tile_np = available_tiles[tile_char]
             np_img[row * img_tile_size[0]:(row + 1) * img_tile_size[0], col * img_tile_size[1]:(col + 1) * img_tile_size[1], :] = tile_np
 
-    bytes_per_line = img_width
     return QImage(np_img, img_width, img_height, QImage.Format_RGB888)

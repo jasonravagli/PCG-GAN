@@ -54,7 +54,7 @@ class MainController:
             self._main_window.show_message_on_statusbar("Level Loaded")
 
     def load_tileset(self, tokenset_name: str):
-        tokenset = tokenset_files.read(tokenset_name)
+        tokenset = tokenset_files.load(tokenset_name)
 
         # Set the TilesetModel fields from the Tokenset
         tilebox_model = converters.tokenset_to_tilebox_model(tokenset)

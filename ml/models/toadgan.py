@@ -5,42 +5,57 @@ import datetime
 import tensorflow as tf
 
 from config import cfg
-from levels.utils.conversion import one_hot_to_ascii_level, ascii_to_rgb
-from levels.utils.downsampling import downsample_image
-from models.toadgan_single_scale import TOADGANSingleScale
-from training_monitors.toadgan_monitor import TOADGANMonitor
-from utils.utils import plot_losses, generate_noise, plot_lr, plot_noise_amplitude
+from levels.level import Level
+from levels.utils import downsample_image
+from ml.models.toadgan_single_scale import TOADGANSingleScale
+from ml.training_monitors.toadgan_monitor import TOADGANMonitor
+from utils.utils import plot_losses, plot_lr, plot_noise_amplitude
+from utils.converters import one_hot_to_ascii_level
 
 
 class TOADGAN:
     def __init__(self):
+        self.conv_receptive_field = 0
+        self.list_gans = None
         self.n_scales = 0
         self.scaled_images = None
-        self.list_gans = None
+        self.scale_factor = None
+        self.training_level = None
         self.tokens_in_lvl = None
         self.token_hierarchy = None
 
-    def train(self, training_image, epochs, tokens_in_lvl, token_hierarchy):
-        physical_devices = tf.config.experimental.list_physical_devices('GPU')
-        # Disable first GPU
-        tf.config.experimental.set_visible_devices(physical_devices[1:], 'GPU')
+    def train(self, level: Level, epochs: int):
+        # physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        # # Disable first GPU
+        # tf.config.experimental.set_visible_devices(physical_devices[1:], 'GPU')
 
-        self.tokens_in_lvl = tokens_in_lvl
-        self.token_hierarchy = token_hierarchy
-        self.scaled_images = self._get_scaled_training_image(training_image)
+        self.training_level = level
+        self.tokens_in_lvl = level.unique_tokens
+        self.token_hierarchy = level.tokenset.token_hierarchy
+
+        # Set fields to determine the scaling hierarchy
+        self.conv_receptive_field = cfg.CONV_RECEPTIVE_FIELD
+        self.scale_factor = cfg.SCALE_FACTOR
+        self.scaled_images = self._get_scaled_training_image(level.level_oh)
         self.n_scales = len(self.scaled_images)
         # Reverse the scaled images order: index 0 is for the lowest scale
         self.scaled_images.reverse()
 
-        # Save the scaled images
+        # Create a template level to use to render images
+        template_level = level.copy()
+        # Render and save scaled levels
         for i in range(self.n_scales):
-            img = ascii_to_rgb(one_hot_to_ascii_level(self.scaled_images[i], tokens_in_lvl))
+            template_level.level_oh = self.scaled_images[i]
+            template_level.level_size = template_level.level_oh.shape[:2]
+            template_level.level_ascii = one_hot_to_ascii_level(template_level.level_oh, template_level.unique_tokens)
+            img = template_level.render()
             img.save(os.path.join(cfg.PATH.TRAIN.SCALED_IMGS, f"scale-{i}.png"), format="png")
 
-        print(f"Calculated {self.n_scales} for the specified training image")
+        print(f"Calculated {self.n_scales} scales for the specified training image")
 
         # Create the training monitor to save images
-        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN.MONITOR_IMGS, toadgan=self, list_tokens_in_level=tokens_in_lvl)
+        training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN.MONITOR_IMGS, toadgan=self,
+                                          template_level=template_level)
 
         list_noise_amp = []
         # Create and train the GAN hierarchy
@@ -155,8 +170,8 @@ class TOADGAN:
         aspect_ratio = training_image.shape[0]/float(training_image.shape[1])
         scaled_images = [training_image]
         current_scale_height = training_image.shape[0]
-        while current_scale_height > cfg.CONV_RECEPTIVE_FIELD:
-            current_scale_height = int(current_scale_height*cfg.SCALE_FACTOR)
+        while current_scale_height > self.conv_receptive_field:
+            current_scale_height = int(current_scale_height*self.scale_factor)
             current_scale_width = int(current_scale_height/aspect_ratio)
 
             scaled_image = downsample_image(training_image, (current_scale_height, current_scale_width),

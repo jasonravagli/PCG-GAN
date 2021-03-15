@@ -13,15 +13,18 @@ _C.PATH.LEVELS_DIR = os.path.join(_C.PATH.RESOURCES, "levels")
 _C.PATH.LEVEL = os.path.join(_C.PATH.RESOURCES, "levels", "mario", "lvl_1-1.txt")
 _C.PATH.SPRITES = os.path.join(_C.PATH.RESOURCES, "levels", "mario", "sprites")
 _C.PATH.TOKENSETS = os.path.join(_C.PATH.RESOURCES, "tokensets")
+_C.PATH.OUTPUT = os.path.join(_C.PATH.ROOT, "output")
 
 _C.PATH.TRAIN = CN()
-_C.PATH.TRAIN.DIR = os.path.join(_C.PATH.RESOURCES, "training")
+_C.PATH.TRAIN.DIR = os.path.join(_C.PATH.OUTPUT, "training")
 _C.PATH.TRAIN.SCALED_IMGS = os.path.join(_C.PATH.TRAIN.DIR, "scaled-imgs")
 _C.PATH.TRAIN.MONITOR_IMGS = os.path.join(_C.PATH.TRAIN.DIR, "training-imgs")
 _C.PATH.TRAIN.LOSSES = os.path.join(_C.PATH.TRAIN.DIR, "losses")
+_C.PATH.TRAIN.PROJECT_NAME = "toadgan-project"
 
 _C.LEVEL = CN()
-_C.LEVEL.TYPE = "mario"
+_C.LEVEL.TYPE = "default"
+_C.LEVEL.NAME = "ex-1"
 
 _C.TRAIN = CN()
 _C.TRAIN.EPOCHS = 1000

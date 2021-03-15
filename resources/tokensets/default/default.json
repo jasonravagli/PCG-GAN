@@ -2,6 +2,7 @@
   "name": "default",
   "tk-groups-hierarchy": [
     {
+      "group": "empty",
       "tokens": [
         {
           "char": "-",
@@ -11,43 +12,97 @@
       ]
     },
     {
+      "group": "floors",
       "tokens": [
         {
-          "char": "F",
+          "char": "0",
           "name": "floor-1",
           "image": "floor-1.png"
+        },
+        {
+          "char": "1",
+          "name": "floor-2",
+          "image": "floor-2.png"
         }
       ]
     },
     {
+      "group": "walls",
       "tokens": [
         {
-          "char": "W",
-          "name": "wall",
-          "image": "wall.png"
+          "char": "2",
+          "name": "wall-1",
+          "image": "wall-1.png"
+        },
+        {
+          "char": "3",
+          "name": "wall-2",
+          "image": "wall-2.png"
         }
       ]
     },
     {
+      "group": "env-special",
       "tokens": [
         {
-          "char": "G",
+          "char": "4",
+          "name": "wall-s1",
+          "image": "wall-s1.png"
+        },
+        {
+          "char": "5",
+          "name": "wall-s2",
+          "image": "wall-s2.png"
+        },
+        {
+          "char": "6",
+          "name": "spikes",
+          "image": "spikes.png"
+        },
+        {
+          "char": "7",
+          "name": "torch",
+          "image": "torch.png"
+        }
+      ]
+    },
+    {
+      "group": "enemies",
+      "tokens": [
+        {
+          "char": "8",
           "name": "goblin",
           "image": "goblin.png"
+        },
+        {
+          "char": "9",
+          "name": "slime",
+          "image": "slime.png"
         }
       ]
     },
     {
+      "group": "special",
       "tokens": [
         {
-          "char": "D",
+          "char": "A",
           "name": "door",
           "image": "door.png"
         },
         {
-          "char": "C",
+          "char": "B",
           "name": "chest",
           "image": "chest.png"
+        },
+        {
+          "char": "C",
+          "name": "key",
+          "image": "key.png"
+        },
+        {
+          "char": "D",
+          "name": "stairs",
+          "image": "stairs.png"
         }
       ]
     }
