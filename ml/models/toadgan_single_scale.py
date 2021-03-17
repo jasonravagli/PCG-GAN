@@ -5,6 +5,7 @@ from tensorflow.keras.layers import Add, Softmax
 from tensorflow.keras.layers import Input, Conv2D, BatchNormalization, LeakyReLU
 from tensorflow.keras.optimizers import Adam
 from tensorflow_core.python.keras.layers import ZeroPadding2D
+from tensorflow_core.python.keras.models import load_model
 from tqdm import trange
 
 from config import cfg
@@ -74,6 +75,10 @@ class TOADGANSingleScale:
     def init_from_previous_scale(self, prev_gan):
         self.critic.set_weights(prev_gan.critic.get_weights())
         self.generator.set_weights(prev_gan.generator.get_weights())
+
+    def init_generator_from_trained_model(self, path_model):
+        scale_generator = load_model(path_model)
+        self.generator.set_weights(scale_generator.get_weights())
 
     # ----------------------------------------
     #          PUBLIC UTILITY FUNCTIONS
@@ -267,7 +272,7 @@ class TOADGANSingleScale:
             self.noise_amplitude = 1
         else:
             self.noise_amplitude = cfg.TRAIN.NOISE_UPDATE * tf.sqrt(tf.reduce_mean(
-                tf.math.squared_difference(real_img, rec_from_prev_scale)))
+                tf.math.squared_difference(real_img, rec_from_prev_scale))).numpy()
 
     # ----------------------------------------
     #               GENERATOR

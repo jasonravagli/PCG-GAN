@@ -1,3 +1,12 @@
-SCALE_FACTOR: 0.8
+SCALE_FACTOR: 0.85
+
+LEVEL:
+  TYPE: "default"
+  NAME: "ex-2"
+
 TRAIN:
-  EPOCHS: 10
+  EPOCHS: 4000
+
+PATH:
+  TRAIN:
+    PROJECT_NAME: "1-4000"

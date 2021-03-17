@@ -3,8 +3,11 @@ import shutil
 
 from config import cfg
 from files import level_files
-from files.toadgan_files import save_project
+from files.toadgan_project_files import save
+from levels.toadgan_project import create_project, TOADGANProject
 from ml.models.toadgan import TOADGAN
+from ml.models.toadgan_single_scale import TOADGANSingleScale
+from utils.converters import one_hot_to_ascii_level
 
 
 def clean_training_dirs():
@@ -31,6 +34,12 @@ if __name__ == "__main__":
     toadgan = TOADGAN()
     toadgan.train(level, cfg.TRAIN.EPOCHS)
 
+    # Create and save the trained TOAD-GAN as a project
+    project = TOADGANProject()
+    project.name = cfg.PATH.TRAIN.PROJECT_NAME
+    project.toadgan = toadgan
+    project.training_level = level
+
     print("\nSaving TOAD-GAN project...")
-    save_project(cfg.PATH.TRAIN.DIR, cfg.PATH.TRAIN.PROJECT_NAME, toadgan)
+    save(cfg.PATH.TRAIN.DIR, project)
     print("Done")

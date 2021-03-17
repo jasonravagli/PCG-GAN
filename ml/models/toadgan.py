@@ -6,9 +6,9 @@ import tensorflow as tf
 
 from config import cfg
 from levels.level import Level
-from levels.utils import downsample_image
 from ml.models.toadgan_single_scale import TOADGANSingleScale
 from ml.training_monitors.toadgan_monitor import TOADGANMonitor
+from utils.downsampling import downsample_image
 from utils.utils import plot_losses, plot_lr, plot_noise_amplitude
 from utils.converters import one_hot_to_ascii_level
 
@@ -20,26 +20,27 @@ class TOADGAN:
         self.n_scales = 0
         self.scaled_images = None
         self.scale_factor = None
-        self.training_level = None
         self.tokens_in_lvl = None
         self.token_hierarchy = None
+
+    def setup_network(self, level: Level, conv_receptive_field, scale_factor):
+        self.tokens_in_lvl = level.unique_tokens
+        self.token_hierarchy = level.tokenset.token_hierarchy
+
+        # Set fields to determine the scaling hierarchy
+        self.conv_receptive_field = conv_receptive_field
+        self.scale_factor = scale_factor
+        self.scaled_images = self._get_scaled_training_image(level.level_oh)
+        self.n_scales = len(self.scaled_images)
+        # Reverse the scaled images order: index 0 is for the lowest scale
+        self.scaled_images.reverse()
 
     def train(self, level: Level, epochs: int):
         # physical_devices = tf.config.experimental.list_physical_devices('GPU')
         # # Disable first GPU
         # tf.config.experimental.set_visible_devices(physical_devices[1:], 'GPU')
 
-        self.training_level = level
-        self.tokens_in_lvl = level.unique_tokens
-        self.token_hierarchy = level.tokenset.token_hierarchy
-
-        # Set fields to determine the scaling hierarchy
-        self.conv_receptive_field = cfg.CONV_RECEPTIVE_FIELD
-        self.scale_factor = cfg.SCALE_FACTOR
-        self.scaled_images = self._get_scaled_training_image(level.level_oh)
-        self.n_scales = len(self.scaled_images)
-        # Reverse the scaled images order: index 0 is for the lowest scale
-        self.scaled_images.reverse()
+        self.setup_network(level, cfg.CONV_RECEPTIVE_FIELD, cfg.SCALE_FACTOR)
 
         # Create a template level to use to render images
         template_level = level.copy()
@@ -73,11 +74,11 @@ class TOADGAN:
             #     current_scale_gan.init_from_previous_scale(prev_scale_gan)
             self.list_gans.append(current_scale_gan)
 
-            print(f"--------- GENERATOR SCALE {index_scale} ---------")
-            current_scale_gan.generator.summary()
-
-            print(f"--------- CRITIC SCALE {index_scale} ---------")
-            current_scale_gan.critic.summary()
+            # print(f"--------- GENERATOR SCALE {index_scale} ---------")
+            # current_scale_gan.generator.summary()
+            #
+            # print(f"--------- CRITIC SCALE {index_scale} ---------")
+            # current_scale_gan.critic.summary()
 
             print(f"--------- START TRAINING GAN AT SCALE {index_scale} ---------")
             start = time.time()
@@ -105,7 +106,7 @@ class TOADGAN:
         Use the gan hierarchy to generate an image
         :return:
         """
-        self.generate_img_at_scale(self.n_scales - 1)
+        return self.generate_img_at_scale(self.n_scales - 1)
 
     def generate_img_at_scale(self, index_scale):
         """

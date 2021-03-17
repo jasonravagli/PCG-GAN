@@ -12,6 +12,7 @@ _C.PATH.RESOURCES = os.path.join(_C.PATH.ROOT, "resources")
 _C.PATH.LEVELS_DIR = os.path.join(_C.PATH.RESOURCES, "levels")
 _C.PATH.LEVEL = os.path.join(_C.PATH.RESOURCES, "levels", "mario", "lvl_1-1.txt")
 _C.PATH.SPRITES = os.path.join(_C.PATH.RESOURCES, "levels", "mario", "sprites")
+_C.PATH.PROJECTS = os.path.join(_C.PATH.RESOURCES, "projects")
 _C.PATH.TOKENSETS = os.path.join(_C.PATH.RESOURCES, "tokensets")
 _C.PATH.OUTPUT = os.path.join(_C.PATH.ROOT, "output")
 

@@ -33,25 +33,31 @@ class MainController:
     def clear_level(self):
         default_tile = list(self._tilebox_model.get_tiles_images().keys())[0]
         grid_tiles = np.full(self._level_model.get_level_size(), default_tile)
+        self._level_model.set_name("untitled")
         self._level_model.set_grid_tiles(grid_tiles)
         self._main_window.show_message_on_statusbar("Level Cleared")
 
     def load_level(self):
         # Show a dialog to select the level file
-        start_directory = os.path.join(cfg.PATH.LEVELS_DIR, self._level_model.get_name() + ".json")
+        start_directory = cfg.PATH.LEVELS_DIR
         file_path = QFileDialog.getOpenFileName(self._main_window, "Load level file", directory=start_directory,
                                                 filter="Level File (*.json)")[0]
         if file_path:
             level = level_files.load(file_path)
 
-            # Set the TilesetModel fields from the Tokenset
-            tilebox_model = converters.tokenset_to_tilebox_model(level.tokenset)
-            self._tilebox_model.set_from_tilebox_model(tilebox_model)
+            if level is not None:
+                # Set the TilesetModel fields from the Tokenset
+                tilebox_model = converters.tokenset_to_tilebox_model(level.tokenset)
+                self._tilebox_model.set_from_tilebox_model(tilebox_model)
 
-            # Set the LevelModel with the loaded Level
-            level_model = converters.level_to_level_model(level)
-            self._level_model.set_from_level_model(level_model)
-            self._main_window.show_message_on_statusbar("Level Loaded")
+                # Set the LevelModel with the loaded Level
+                level_model = converters.level_to_level_model(level)
+                self._level_model.set_from_level_model(level_model)
+                self._main_window.show_message_on_statusbar("Level Loaded")
+            else:
+                # Error loading level (Invalid file)
+                self.clear_level()
+                self._main_window.show_message_on_statusbar("Error Loading Level - Invalid File")
 
     def load_tileset(self, tokenset_name: str):
         tokenset = tokenset_files.load(tokenset_name)
@@ -65,7 +71,7 @@ class MainController:
 
     def save_level(self):
         # Show a dialog to select the destination file
-        start_directory = cfg.PATH.LEVELS_DIR
+        start_directory = os.path.join(cfg.PATH.LEVELS_DIR, self._level_model.get_name() + ".json")
         file_path = QFileDialog.getSaveFileName(self._main_window, "Save level file", directory=start_directory,
                                                 filter="Level File (*.json)")[0]
         if file_path:

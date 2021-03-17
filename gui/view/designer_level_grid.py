@@ -9,7 +9,7 @@ from gui.model.tilebox import TileBoxModel
 from gui.utils import level_model_to_qimage
 
 
-class LevelGrid(QLabel):
+class DesignerLevelGrid(QLabel):
 
     # Signal to notify the click on a tile of the level grid
     tile_clicked = pyqtSignal(int, int)
