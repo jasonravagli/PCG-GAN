@@ -23,6 +23,10 @@ def load_image_to_numpy(img_path: str):
     img = PIL.Image.open(img_path)
     img = img.convert("RGB")
     img.thumbnail(img_size, PIL.Image.ANTIALIAS)
+    if img.width != img_size[1] or img.height != img_size[0]:
+        wrap_image = PIL.Image.new("RGB", img_size, (0, 0, 0))
+        wrap_image.paste(img, ((img_size[1] - img.width) // 2, img_size[0] - img.height))
+        img = wrap_image
     return np.array(img)
 
 
@@ -43,6 +47,7 @@ def level_model_to_qimage(level_model: LevelModel, tilebox_model: TileBoxModel):
         for col in range(columns):
             tile_char = grid_tiles[row, col]
             tile_np = available_tiles[tile_char]
+
             np_img[row * img_tile_size[0]:(row + 1) * img_tile_size[0], col * img_tile_size[1]:(col + 1) * img_tile_size[1], :] = tile_np
 
     return QImage(np_img, img_width, img_height, QImage.Format_RGB888)

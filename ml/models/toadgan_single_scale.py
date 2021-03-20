@@ -170,7 +170,7 @@ class TOADGANSingleScale:
         # Plot images on training end
         singan_monitor.save_imgs_on_epoch_end(index_scale=self.index_scale, epoch=epochs)
 
-        return list_c_wass_loss, list_c_gp_loss, list_g_adv_loss, list_g_rec_loss, list_lr, self.noise_amplitude
+        return list_c_wass_loss, list_c_gp_loss, list_g_adv_loss, list_g_rec_loss, list_lr
 
     @tf.function
     def _train_critic_step(self, real_img, noise, img_from_prev_scale):

@@ -2,13 +2,11 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.3
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -48,7 +46,7 @@ class Ui_MainWindow(object):
         self.panel_tilebox.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.panel_tilebox.setObjectName("panel_tilebox")
         self.panel_tilebox_scroll_area = QtWidgets.QWidget()
-        self.panel_tilebox_scroll_area.setGeometry(QtCore.QRect(0, 0, 224, 408))
+        self.panel_tilebox_scroll_area.setGeometry(QtCore.QRect(0, 0, 98, 28))
         self.panel_tilebox_scroll_area.setObjectName("panel_tilebox_scroll_area")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.panel_tilebox_scroll_area)
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -392,38 +390,10 @@ class Ui_MainWindow(object):
         self.widget_28.setObjectName("widget_28")
         self.gridLayout_24 = QtWidgets.QGridLayout(self.widget_28)
         self.gridLayout_24.setObjectName("gridLayout_24")
-        self.label_7 = QtWidgets.QLabel(self.widget_28)
-        self.label_7.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_7.setObjectName("label_7")
-        self.gridLayout_24.addWidget(self.label_7, 0, 2, 1, 1)
-        self.label_6 = QtWidgets.QLabel(self.widget_28)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_6.sizePolicy().hasHeightForWidth())
-        self.label_6.setSizePolicy(sizePolicy)
-        self.label_6.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.label_6.setObjectName("label_6")
-        self.gridLayout_24.addWidget(self.label_6, 0, 0, 1, 1)
-        self.spinBox_2 = QtWidgets.QSpinBox(self.widget_28)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(2)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_2.sizePolicy().hasHeightForWidth())
-        self.spinBox_2.setSizePolicy(sizePolicy)
-        self.spinBox_2.setObjectName("spinBox_2")
-        self.gridLayout_24.addWidget(self.spinBox_2, 0, 3, 1, 1)
-        self.spinBox = QtWidgets.QSpinBox(self.widget_28)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(2)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox.sizePolicy().hasHeightForWidth())
-        self.spinBox.setSizePolicy(sizePolicy)
-        self.spinBox.setObjectName("spinBox")
-        self.gridLayout_24.addWidget(self.spinBox, 0, 1, 1, 1)
         self.label_orig_level_size = QtWidgets.QLabel(self.widget_28)
+        self.label_orig_level_size.setAlignment(QtCore.Qt.AlignCenter)
         self.label_orig_level_size.setObjectName("label_orig_level_size")
-        self.gridLayout_24.addWidget(self.label_orig_level_size, 0, 4, 1, 1)
+        self.gridLayout_24.addWidget(self.label_orig_level_size, 0, 0, 1, 1)
         self.gridLayout_23.addWidget(self.widget_28, 0, 1, 1, 1)
         self.widget_29 = QtWidgets.QWidget(self.widget_15)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -538,9 +508,8 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_draw), _translate("MainWindow", "Draw Level"))
         self.label_5.setText(_translate("MainWindow", "Project:"))
         self.button_load_project.setText(_translate("MainWindow", "Load Project"))
-        self.label_7.setText(_translate("MainWindow", "x"))
-        self.label_6.setText(_translate("MainWindow", "Level Size:"))
-        self.label_orig_level_size.setText(_translate("MainWindow", "(Original: - x -)"))
+        self.label_orig_level_size.setText(_translate("MainWindow", "Original Level Size: - x -"))
         self.button_generate.setText(_translate("MainWindow", "Generate"))
         self.button_save_generated.setText(_translate("MainWindow", "Save Level"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_generate), _translate("MainWindow", "Generate Images"))
+

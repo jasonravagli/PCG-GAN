@@ -60,6 +60,10 @@ class MainController:
                 self._main_window.show_message_on_statusbar("Error Loading Level - Invalid File")
 
     def load_tileset(self, tokenset_name: str):
+        # Clear the level before changing the tilebox
+        if self._tilebox_model.get_loaded():
+            self.clear_level()
+
         tokenset = tokenset_files.load(tokenset_name)
 
         # Set the TilesetModel fields from the Tokenset

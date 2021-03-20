@@ -1,0 +1,125 @@
+{
+  "name": "platform",
+  "tk-groups-hierarchy": [
+    {
+      "group": "empty",
+      "tokens": [
+        {
+          "char": "-",
+          "name": "empty",
+          "image": "empty.png"
+        }
+      ]
+    },
+    {
+      "group": "ground",
+      "tokens": [
+        {
+          "char": "0",
+          "name": "ground-1",
+          "image": "ground-1.png"
+        },
+        {
+          "char": "1",
+          "name": "ground-2",
+          "image": "ground-2.png"
+        },
+        {
+          "char": "2",
+          "name": "ground-3",
+          "image": "ground-3.png"
+        },
+        {
+          "char": "3",
+          "name": "ground-4",
+          "image": "ground-4.png"
+        },
+        {
+          "char": "4",
+          "name": "ground-5",
+          "image": "ground-5.png"
+        },
+        {
+          "char": "5",
+          "name": "ground-6",
+          "image": "ground-6.png"
+        },
+        {
+          "char": "6",
+          "name": "ground-7",
+          "image": "ground-7.png"
+        },
+        {
+          "char": "7",
+          "name": "ground-8",
+          "image": "ground-8.png"
+        },
+        {
+          "char": "8",
+          "name": "ground-9",
+          "image": "ground-9.png"
+        },
+        {
+          "char": "9",
+          "name": "ground-10",
+          "image": "ground-10.png"
+        },
+        {
+          "char": "A",
+          "name": "ground-11",
+          "image": "ground-11.png"
+        },
+        {
+          "char": "B",
+          "name": "ground-12",
+          "image": "ground-12.png"
+        }
+      ]
+    },
+    {
+      "group": "environment",
+      "tokens": [
+        {
+          "char": "C",
+          "name": "bush",
+          "image": "bush.png"
+        },
+        {
+          "char": "D",
+          "name": "mushroom",
+          "image": "mushroom.png"
+        },
+        {
+          "char": "E",
+          "name": "stone",
+          "image": "stone.png"
+        },
+        {
+          "char": "F",
+          "name": "tree",
+          "image": "tree.png"
+        }
+      ]
+    },
+    {
+      "group": "special",
+      "tokens": [
+        {
+          "char": "G",
+          "name": "arrow-sign",
+          "image": "arrow-sign.png"
+        },
+        {
+          "char": "H",
+          "name": "crate",
+          "image": "crate.png"
+        },
+        {
+          "char": "I",
+          "name": "sign",
+          "image": "sign.png"
+        }
+      ]
+    }
+  ]
+}

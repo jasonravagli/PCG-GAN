@@ -118,14 +118,14 @@ class MainWindow(QMainWindow):
         # Project not loaded: reset and disable UI components
         if project is None:
             self.ui.edit_project_name.setText("")
-            self.ui.label_orig_level_size.setText("(Original - x -)")
+            self.ui.label_orig_level_size.setText("Original Level Size - x -")
             self.ui.button_generate.setDisabled(True)
             self.ui.button_save_generated.setDisabled(True)
             self.generated_level_image.clear_pixmap()
         else:
             self.ui.edit_project_name.setText(project.name)
-            self.ui.label_orig_level_size.setText(f"(Original {project.training_level.level_size[0]} x "
-                                                  f"{project.training_level.level_size[0]})")
+            self.ui.label_orig_level_size.setText(f"Original Level Size {project.training_level.level_size[0]} x "
+                                                  f"{project.training_level.level_size[0]}")
             self.ui.button_generate.setDisabled(False)
 
             generated_level = self._project_model.get_generated_level()

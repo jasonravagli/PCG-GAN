@@ -41,5 +41,5 @@ if __name__ == "__main__":
     project.training_level = level
 
     print("\nSaving TOAD-GAN project...")
-    save(cfg.PATH.TRAIN.DIR, project)
+    save(cfg.PATH.TRAIN.DIR, project, save_training_info=True)
     print("Done")

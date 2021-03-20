@@ -7,6 +7,7 @@ import tensorflow as tf
 from config import cfg
 from levels.level import Level
 from ml.models.toadgan_single_scale import TOADGANSingleScale
+from ml.training_info import TrainingInfo
 from ml.training_monitors.toadgan_monitor import TOADGANMonitor
 from utils.downsampling import downsample_image
 from utils.utils import plot_losses, plot_lr, plot_noise_amplitude
@@ -22,6 +23,8 @@ class TOADGAN:
         self.scale_factor = None
         self.tokens_in_lvl = None
         self.token_hierarchy = None
+        self.list_reconstruction_noise = None
+        self.list_training_info = None
 
     def setup_network(self, level: Level, conv_receptive_field, scale_factor):
         self.tokens_in_lvl = level.unique_tokens
@@ -58,20 +61,26 @@ class TOADGAN:
         training_monitor = TOADGANMonitor(path_imgs_dir=cfg.PATH.TRAIN.MONITOR_IMGS, toadgan=self,
                                           template_level=template_level)
 
-        list_noise_amp = []
+        # list_noise_amp = []
         # Create and train the GAN hierarchy
         self.list_gans = []
+        self.list_training_info = []
+        self.list_reconstruction_noise = []
         print(f"--------- START TRAINING TOAD-GAN ---------\n")
         for index_scale in range(self.n_scales):
             # The reconstruction noise is 0 for all scales except the lowest, which is fixed a priori
             current_scale_reconstruction_noise = self._get_reconstruction_noise_tensor(index_scale)
+            self.list_reconstruction_noise.append(current_scale_reconstruction_noise.numpy())
+
             current_scale_gan = TOADGANSingleScale(img_shape=self.scaled_images[index_scale].shape,
                                                    index_scale=index_scale,
                                                    get_generated_img_at_scale=self.generate_img_at_scale,
                                                    get_reconstructed_img_at_scale=self.get_reconstructed_image_at_scale,
                                                    reconstruction_noise=current_scale_reconstruction_noise)
-            # if index_scale > 0:
-            #     current_scale_gan.init_from_previous_scale(prev_scale_gan)
+
+            # The generated level seem to be cleaner with this initialization
+            if index_scale > 0:
+                current_scale_gan.init_from_previous_scale(prev_scale_gan)
             self.list_gans.append(current_scale_gan)
 
             # print(f"--------- GENERATOR SCALE {index_scale} ---------")
@@ -82,23 +91,30 @@ class TOADGAN:
 
             print(f"--------- START TRAINING GAN AT SCALE {index_scale} ---------")
             start = time.time()
-            # c_loss, g_loss = current_scale_gan.train(self.scaled_images[index_scale], epochs, training_monitor)
-            c_wass_loss, c_gp_loss, g_adv_loss, g_rec_loss, lr, noise_amp = current_scale_gan.train(self.scaled_images[index_scale],
-                                                                                                    epochs, training_monitor)
+            c_wass_loss, c_gp_loss, g_adv_loss, g_rec_loss, lr = current_scale_gan.train(self.scaled_images[index_scale],
+                                                                                         epochs, training_monitor)
             end = time.time()
-            list_noise_amp.append(noise_amp)
-            # Save training curves fot the current scale
-            # plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_loss, g_loss)
-            plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_wass_loss, c_gp_loss, g_adv_loss,
-                        g_rec_loss)
-            plot_lr(os.path.join(cfg.PATH.TRAIN.DIR, f"lr-{index_scale}.png"), lr)
+            # list_noise_amp.append(noise_amp)
+            # plot_losses(os.path.join(cfg.PATH.TRAIN.LOSSES, f"{index_scale}.png"), c_wass_loss, c_gp_loss, g_adv_loss,
+            #             g_rec_loss)
+            # plot_lr(os.path.join(cfg.PATH.TRAIN.DIR, f"lr-{index_scale}.png"), lr)
             print(f"--------- TRAINING ENDED {index_scale} - Took {datetime.timedelta(seconds=int(end-start))} ---------")
+
+            # Save scale training info
+            training_info = TrainingInfo()
+            training_info.lr = lr
+            training_info.loss_critic_wass = c_wass_loss
+            training_info.loss_critic_gp = c_gp_loss
+            training_info.loss_gen_adversarial = g_adv_loss
+            training_info.loss_gen_reconstruction = g_rec_loss
+            self.list_training_info.append(training_info)
 
             prev_scale_gan = current_scale_gan
 
-        plot_noise_amplitude(os.path.join(cfg.PATH.TRAIN.DIR, f"noise-amp.png"), list_noise_amp)
+        # plot_noise_amplitude(os.path.join(cfg.PATH.TRAIN.DIR, f"noise-amp.png"), list_noise_amp)
+
         # Save the reconstructed images
-        training_monitor.save_reconstructed_images()
+        # training_monitor.save_reconstructed_images()
         print(f"\n--------- END TRAINING TOAD-GAN ---------")
 
     def generate_image(self):
@@ -172,8 +188,8 @@ class TOADGAN:
         scaled_images = [training_image]
         current_scale_height = training_image.shape[0]
         while current_scale_height > self.conv_receptive_field:
-            current_scale_height = int(current_scale_height*self.scale_factor)
-            current_scale_width = int(current_scale_height/aspect_ratio)
+            current_scale_height = round(current_scale_height*self.scale_factor)
+            current_scale_width = round(current_scale_height/aspect_ratio)
 
             scaled_image = downsample_image(training_image, (current_scale_height, current_scale_width),
                                             self.tokens_in_lvl, self.token_hierarchy)

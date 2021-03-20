@@ -34,6 +34,10 @@ def load(tokenset_name: str) -> TokenSet:
         image_path = tokenset.get_path_token_sprite(token)
         sprite = Image.open(image_path)
         sprite.thumbnail(TokenSet.SPRITE_SIZE)
+        if sprite.width != TokenSet.SPRITE_SIZE[1] or sprite.height != TokenSet.SPRITE_SIZE[0]:
+            wrap_image = Image.new("RGB", TokenSet.SPRITE_SIZE, (0, 0, 0))
+            wrap_image.paste(sprite, ((TokenSet.SPRITE_SIZE[1] - sprite.width) // 2, TokenSet.SPRITE_SIZE[0] - sprite.height))
+            sprite = wrap_image
         tokenset.token_sprites[token] = sprite
 
     return tokenset
