@@ -1,4 +1,5 @@
 import math
+from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy
@@ -13,6 +14,9 @@ class DesignerLevelGrid(QLabel):
 
     # Signal to notify the click on a tile of the level grid
     tile_clicked = pyqtSignal(int, int)
+
+    # Signal to notify the mouse over a tile of the level grid
+    tile_over = pyqtSignal(int, int)
 
     def __init__(self, level_model: LevelModel, tilebox_model: TileBoxModel):
         super().__init__()
@@ -32,6 +36,9 @@ class DesignerLevelGrid(QLabel):
         self._last_tile_drawn_col = -1
         # Flag that indicates whether we are drawing on the grid (the mouse is pressed)
         self._drawing = False
+        # Keep track of the last tile the cursor was to handle cell highlighting
+        self._last_tile_over_row = -1
+        self._last_tile_over_col = -1
 
         # Display current grid
         self.setObjectName("level_grid")
@@ -47,6 +54,15 @@ class DesignerLevelGrid(QLabel):
     def connect_to_tile_clicked(self, slot):
         self.tile_clicked.connect(slot)
 
+    def connect_to_tile_over(self, slot):
+        self.tile_over.connect(slot)
+
+    def leaveEvent(self, a0: QtCore.QEvent) -> None:
+        # Mouse is outside the widget, disable cell highlighting
+        self.tile_over.emit(-1, -1)
+        self._last_tile_over_row = -1
+        self._last_tile_drawn_col = -1
+
     def mouseMoveEvent(self, ev: QtGui.QMouseEvent) -> None:
         x_pos = ev.pos().x()
         y_pos = ev.pos().y()
@@ -57,20 +73,30 @@ class DesignerLevelGrid(QLabel):
         if 0 <= x_grid < self.pixmap().width() and 0 <= y_grid < self.pixmap().height():
             self.setCursor(Qt.CrossCursor)
 
+            # Converts the widget coordinates into grid coordinates
+            grid_size = self._level_model.get_level_size()
+            row = math.floor(y_grid * grid_size[0] / self.pixmap().height())
+            col = math.floor(x_grid * grid_size[1] / self.pixmap().width())
+
             # Check if we are drawing (the mouse is pressed and dragged)
             if self._drawing:
-                # Converts the widget coordinates into grid coordinates
-                grid_size = self._level_model.get_level_size()
-                row = math.floor(y_grid * grid_size[0] / self.pixmap().height())
-                col = math.floor(x_grid * grid_size[1] / self.pixmap().width())
-
                 # Check if the event was already handled for this tile (the mouse is moved over the same tile)
                 if row != self._last_tile_drawn_row or col != self._last_tile_drawn_col:
                     self.tile_clicked.emit(row, col)
                     self._last_tile_drawn_row = row
                     self._last_tile_drawn_col = col
+            else:
+                # Check if the highlightinh event was already handled for this tile
+                # (the mouse is moved over the same tile)
+                if row != self._last_tile_drawn_row or col != self._last_tile_drawn_col:
+                    self.tile_over.emit(row, col)
+                    self._last_tile_over_row = row
+                    self._last_tile_drawn_col = col
         else:
             self.unsetCursor()
+            self.tile_over.emit(-1, -1)
+            self._last_tile_over_row = -1
+            self._last_tile_drawn_col = -1
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         x_click = ev.pos().x()
@@ -91,6 +117,11 @@ class DesignerLevelGrid(QLabel):
 
             # Start continuous drawing
             self._drawing = True
+
+            # Disable cell highlighting when drawing
+            self._last_tile_over_row = -1
+            self._last_tile_over_col = -1
+            self.tile_over.emit(-1, -1)
 
     def mouseReleaseEvent(self, ev: QtGui.QMouseEvent) -> None:
         # The mouse is released: stop drawing

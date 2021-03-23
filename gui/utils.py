@@ -2,6 +2,7 @@ import numpy as np
 import PIL.Image
 from PyQt5.QtGui import QImage
 
+from config import cfg
 from gui.model.level import LevelModel
 from gui.model.tilebox import TileBoxModel
 
@@ -18,7 +19,7 @@ def clear_layout(layout):
 
 
 def load_image_to_numpy(img_path: str):
-    img_size = (16, 16)
+    img_size = cfg.LEVEL.TILE_SIZE
 
     img = PIL.Image.open(img_path)
     img = img.convert("RGB")
@@ -31,7 +32,7 @@ def load_image_to_numpy(img_path: str):
 
 
 def level_model_to_qimage(level_model: LevelModel, tilebox_model: TileBoxModel):
-    img_tile_size = (16, 16)
+    img_tile_size = cfg.LEVEL.TILE_SIZE
     n_channels = 3
 
     available_tiles = tilebox_model.get_tiles_np()
@@ -43,10 +44,20 @@ def level_model_to_qimage(level_model: LevelModel, tilebox_model: TileBoxModel):
     img_width = img_tile_size[1] * columns
     np_img = np.zeros((img_height, img_width, n_channels), np.uint8)
 
+    highlighting_tile = np.array([[[50, 50, 50]] * img_tile_size[1]]*img_tile_size[0], dtype=np.uint8)
     for row in range(rows):
         for col in range(columns):
             tile_char = grid_tiles[row, col]
             tile_np = available_tiles[tile_char]
+
+            # Check if the current tile is the highlighted tile
+            if (row, col) == level_model.get_highlighted_tile():
+                tile_np = available_tiles[tile_char].copy()
+
+                # Prevent value overflow
+                temp = 255 - highlighting_tile  # a temp uint8 array here
+                np.putmask(tile_np, temp < tile_np, temp)  # a temp bool array here
+                tile_np += highlighting_tile
 
             np_img[row * img_tile_size[0]:(row + 1) * img_tile_size[0], col * img_tile_size[1]:(col + 1) * img_tile_size[1], :] = tile_np
 

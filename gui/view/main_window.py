@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         else:
             self.ui.edit_project_name.setText(project.name)
             self.ui.label_orig_level_size.setText(f"Original Level Size {project.training_level.level_size[0]} x "
-                                                  f"{project.training_level.level_size[0]}")
+                                                  f"{project.training_level.level_size[1]}")
             self.ui.button_generate.setDisabled(False)
 
             generated_level = self._project_model.get_generated_level()

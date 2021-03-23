@@ -26,6 +26,7 @@ _C.PATH.TRAIN.PROJECT_NAME = "toadgan-project"
 _C.LEVEL = CN()
 _C.LEVEL.TYPE = "default"
 _C.LEVEL.NAME = "ex-1"
+_C.LEVEL.TILE_SIZE = (32, 32)
 
 _C.TRAIN = CN()
 _C.TRAIN.EPOCHS = 1000

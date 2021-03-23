@@ -1,4 +1,5 @@
 import numpy as np
+from PIL.Image import Image
 from PyQt5.QtGui import QImage
 
 from files.tokenset_files import load
@@ -51,6 +52,11 @@ def level_to_level_model(level: Level) -> LevelModel:
     return level_model
 
 
+def pil_image_to_qimage(image: Image, has_alpha: bool = False) -> QImage:
+    np_img = np.array(image)
+    return QImage(np_img, image.width, image.height, QImage.Format_RGBA8888 if has_alpha else QImage.Format_RGB888)
+
+
 def tokenset_to_tilebox_model(tokenset: TokenSet) -> TileBoxModel:
     tilebox_model = TileBoxModel()
     tilebox_model.set_tokenset_name(tokenset.name)
@@ -60,8 +66,8 @@ def tokenset_to_tilebox_model(tokenset: TokenSet) -> TileBoxModel:
     tiles_images = {}
     tiles_np = {}
     for char_tile in tokenset.tokens.keys():
-        tiles_images[char_tile] = QImage(tokenset.get_path_token_sprite(char_tile))
-        tiles_np[char_tile] = load_image_to_numpy(tokenset.get_path_token_sprite(char_tile))
+        tiles_images[char_tile] = pil_image_to_qimage(tokenset.token_sprites_preview[char_tile], has_alpha=True)
+        tiles_np[char_tile] = np.array(tokenset.token_sprites[char_tile])
     tilebox_model.set_tiles_images(tiles_images)
     tilebox_model.set_tiles_np(tiles_np)
 

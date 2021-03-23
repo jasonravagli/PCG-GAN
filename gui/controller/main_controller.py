@@ -26,6 +26,7 @@ class MainController:
         main_window.connect_to_grid_size_changed(self.set_level_grid_size)
         main_window.widget_tilebox.connect_to_tile_clicked(self.select_tile_from_tilebox)
         main_window.level_grid.connect_to_tile_clicked(self.apply_selected_tile_to_level)
+        main_window.level_grid.connect_to_tile_over(self.highlight_tile)
 
     def apply_selected_tile_to_level(self, row, column):
         self._level_model.set_grid_tile(row, column, self._tilebox_model.get_selected_tile())
@@ -36,6 +37,9 @@ class MainController:
         self._level_model.set_name("untitled")
         self._level_model.set_grid_tiles(grid_tiles)
         self._main_window.show_message_on_statusbar("Level Cleared")
+
+    def highlight_tile(self, row: int, col: int):
+        self._level_model.set_highlighted_tile((row, col))
 
     def load_level(self):
         # Show a dialog to select the level file

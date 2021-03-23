@@ -29,15 +29,26 @@ def load(tokenset_name: str) -> TokenSet:
         tokenset.tokens.update(dict_group)
 
     # Load the token sprites
+    sprite_size = cfg.LEVEL.TILE_SIZE
+    tokenset.token_sprites_preview = {}
     tokenset.token_sprites = {}
+    # Load the empty tile: it will be used as background for all the others
+    bg_image_path = tokenset.get_path_token_sprite("-")
+    bg_image = Image.open(bg_image_path)
+    bg_image = bg_image.convert("RGBA")
+    bg_image = bg_image.resize(sprite_size, Image.LANCZOS)
     for token in tokenset.tokens.keys():
         image_path = tokenset.get_path_token_sprite(token)
         sprite = Image.open(image_path)
-        sprite.thumbnail(TokenSet.SPRITE_SIZE)
-        if sprite.width != TokenSet.SPRITE_SIZE[1] or sprite.height != TokenSet.SPRITE_SIZE[0]:
-            wrap_image = Image.new("RGB", TokenSet.SPRITE_SIZE, (0, 0, 0))
-            wrap_image.paste(sprite, ((TokenSet.SPRITE_SIZE[1] - sprite.width) // 2, TokenSet.SPRITE_SIZE[0] - sprite.height))
-            sprite = wrap_image
-        tokenset.token_sprites[token] = sprite
+        sprite = sprite.convert("RGBA")
+        sprite = sprite.resize(sprite_size, Image.LANCZOS)
+
+        # Use the empty tile (-) as a background for all the others
+        temp_image = bg_image.copy()
+        temp_image.paste(sprite, (0, 0), sprite)
+        temp_image = temp_image.convert("RGB")
+
+        tokenset.token_sprites_preview[token] = sprite
+        tokenset.token_sprites[token] = temp_image
 
     return tokenset

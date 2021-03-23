@@ -2,12 +2,12 @@ SCALE_FACTOR: 0.8
 
 LEVEL:
   TYPE: "platform"
-  NAME: "ex-3"
+  NAME: "ex-4"
 
 TRAIN:
-  EPOCHS: 4000
+  EPOCHS: 8000
   NOISE_UPDATE: 0.05
 
 PATH:
   TRAIN:
-    PROJECT_NAME: "3-4000-init"
+    PROJECT_NAME: "4-8000-init"
