@@ -13,6 +13,15 @@ to be used in the training process
 The system is devised to be as game independent as possible. Levels are designed and generated using specific tile sets.
 Two default sets are provided, but users can define and use their own putting them inside the `resources/tokensets` folder.
 
+## Requirements
+| Package | Version |
+| ------- | ------- |
+| **pillow** | tested on v8.0.1 |
+| **python** | tested on v3.7.9 | 
+| **pyqt** | tested on v5.12.3 |
+| **qdarkstyle** | tested on v2.8.1 |
+| **tensorflow** | tested on v2.0.0 |
+
 ## TOAD-GAN and Training Environment
 To train a TOAD-GAN it is sufficient to specify the example level and the tile set it uses inside the [config.yaml](config.yaml) file.
 The application will search for the training level inside the `resources/levels` folder. 
