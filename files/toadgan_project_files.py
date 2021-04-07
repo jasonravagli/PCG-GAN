@@ -26,8 +26,10 @@ def load(path_file: str) -> TOADGANProject:
         conv_receptive_field = dict_project["conv-receptive-field"]
         scale_factor = dict_project["scale-factor"]
         list_scales = dict_project["scales"]
+        # This check is due to compatibility issue with old projects
+        n_conv_blocks = dict_project["n-conv-blocks"] if "n-conv-blocks" in dict_project else 3
 
-        project.toadgan.setup_network(project.training_level, conv_receptive_field, scale_factor)
+        project.toadgan.setup_network(project.training_level, n_conv_blocks, conv_receptive_field, scale_factor)
         project.toadgan.list_gans = []
         for index_scale in range(project.toadgan.n_scales):
             scale_model = list_scales[index_scale]["model"]
@@ -39,7 +41,8 @@ def load(path_file: str) -> TOADGANProject:
                                                    index_scale=index_scale,
                                                    get_generated_img_at_scale=project.toadgan.generate_img_at_scale,
                                                    get_reconstructed_img_at_scale=project.toadgan.get_reconstructed_image_at_scale,
-                                                   reconstruction_noise=reconstruction_noise)
+                                                   reconstruction_noise=reconstruction_noise,
+                                                   n_conv_blocks=n_conv_blocks)
             # Load the generator model
             path_model = os.path.join(project_dir, dict_project["models-dir"], scale_model)
             current_scale_gan.init_generator_from_trained_model(path_model)
@@ -63,6 +66,7 @@ def save(path_dir: str, project: TOADGANProject, save_training_info: bool = Fals
         "name": project.name,
         "level": "level.json",
         "tokenset": project.training_level.tokenset.name,
+        "n-conv-blocks": project.toadgan.n_conv_blocks,
         "conv-receptive-field": project.toadgan.conv_receptive_field,
         "scale-factor": project.toadgan.scale_factor,
         "models-dir": "toadgan-scales"

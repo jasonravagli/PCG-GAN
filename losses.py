@@ -23,18 +23,18 @@ def generator_wass_loss(fake_score):
     :param fake_score:
     :return:
     """
-    # return tf.reduce_mean(fake_score)
     return -tf.reduce_mean(fake_score)
 
 
 def critic_wass_loss(real_score, fake_score):
     """
     Simplification of the Wasserstein loss for the critic model
+    Real images labels are -1, encouraging the critic to assign greater scores to real images.
+    Fake images labels are 1, encouraging the critic to assign smaller scores to fake images.
     :param real_score:
     :param fake_score:
     :return:
     """
-    # return tf.reduce_mean(real_score) - tf.reduce_mean(fake_score)
     return -tf.reduce_mean(real_score) + tf.reduce_mean(fake_score)
 
 

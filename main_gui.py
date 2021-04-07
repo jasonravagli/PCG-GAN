@@ -1,3 +1,5 @@
+print("Starting application...")
+
 import qdarkstyle as qdarkstyle
 import sys
 

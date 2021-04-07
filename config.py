@@ -2,9 +2,12 @@ import os
 from yacs.config import CfgNode as CN
 
 _C = CN()
-# Receptive field of the convolutional filters in the last convolutional block
+# Receptive field of the convolutional filters in the last convolutional block. Can be calculated as N_CONV_BLOCKS*2 + 1
+# However due to an error in the original TOAD-GAN implementation in our older projects is set to 11 with only 3 conv
+# blocks. It is kept for compatibility issues
 _C.CONV_RECEPTIVE_FIELD = 11
 _C.SCALE_FACTOR = 0.8
+_C.N_CONV_BLOCKS = 5
 
 _C.PATH = CN()
 _C.PATH.ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -29,7 +32,9 @@ _C.LEVEL.NAME = "ex-1"
 _C.LEVEL.TILE_SIZE = (32, 32)
 
 _C.TRAIN = CN()
-_C.TRAIN.EPOCHS = 1000
-_C.TRAIN.NOISE_UPDATE = 0.1
+_C.TRAIN.EPOCHS = 8000
+_C.TRAIN.NOISE_UPDATE = 0.05
+# Epochs at which learning rate is decreased by a factor of 10. Default values are intended to be used with 8000 epochs
+_C.TRAIN.LR_SCHEDULER_STEPS = [3200, 5000]
 
 cfg = _C

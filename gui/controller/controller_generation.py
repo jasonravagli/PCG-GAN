@@ -27,7 +27,7 @@ class ControllerGeneration:
         # Create a Level object for the generated level from the TOAD-GAN training level
         level = project.training_level.copy()
         level.level_oh = generated_oh_level
-        level.level_size = generated_oh_level.shape[:2]
+        level.level_size = generated_oh_level.shape[:2].as_list()
         level.level_ascii = one_hot_to_ascii_level(level.level_oh, level.unique_tokens)
         self._project_model.set_generated_level(level)
 

@@ -10,12 +10,15 @@ from ml.models.toadgan_single_scale import TOADGANSingleScale
 from ml.training_info import TrainingInfo
 from ml.training_monitors.toadgan_monitor import TOADGANMonitor
 from utils.downsampling import downsample_image
-from utils.utils import plot_losses, plot_lr, plot_noise_amplitude
+from utils.utils import plot_losses, plot_lr, plot_noise_amplitude, generate_noise
 from utils.converters import one_hot_to_ascii_level
 
 
 class TOADGAN:
     def __init__(self):
+        # Convolutional blocks used to build generators and critics
+        self.n_conv_blocks = 3
+        # Receptive field of the filters in the last convolutional layers (7 when there are 3 conv blocks)
         self.conv_receptive_field = 0
         self.list_gans = None
         self.n_scales = 0
@@ -26,7 +29,8 @@ class TOADGAN:
         self.list_reconstruction_noise = None
         self.list_training_info = None
 
-    def setup_network(self, level: Level, conv_receptive_field, scale_factor):
+    def setup_network(self, level: Level, n_conv_blocks, conv_receptive_field, scale_factor):
+        self.n_conv_blocks = n_conv_blocks
         self.tokens_in_lvl = level.unique_tokens
         self.token_hierarchy = level.tokenset.token_hierarchy
 
@@ -43,7 +47,7 @@ class TOADGAN:
         # # Disable first GPU
         # tf.config.experimental.set_visible_devices(physical_devices[1:], 'GPU')
 
-        self.setup_network(level, cfg.CONV_RECEPTIVE_FIELD, cfg.SCALE_FACTOR)
+        self.setup_network(level, cfg.N_CONV_BLOCKS, cfg.CONV_RECEPTIVE_FIELD, cfg.SCALE_FACTOR)
 
         # Create a template level to use to render images
         template_level = level.copy()
@@ -76,9 +80,10 @@ class TOADGAN:
                                                    index_scale=index_scale,
                                                    get_generated_img_at_scale=self.generate_img_at_scale,
                                                    get_reconstructed_img_at_scale=self.get_reconstructed_image_at_scale,
-                                                   reconstruction_noise=current_scale_reconstruction_noise)
+                                                   reconstruction_noise=current_scale_reconstruction_noise,
+                                                   n_conv_blocks=self.n_conv_blocks)
 
-            # The generated level seem to be cleaner with this initialization
+            # GANs are initialized with weights from the previous scale to speed up and stabilize training
             if index_scale > 0:
                 current_scale_gan.init_from_previous_scale(prev_scale_gan)
             self.list_gans.append(current_scale_gan)
@@ -170,9 +175,7 @@ class TOADGAN:
         :return:
         """
         if index_scale == 0:
-            return tf.random.normal(
-                shape=(1, *self.scaled_images[0].shape)
-            )
+            return generate_noise(shape=(1, *self.scaled_images[0].shape), std=1)
 
         return tf.zeros((1, *self.scaled_images[index_scale].shape))
 

@@ -91,7 +91,8 @@ class TOADGANSingleScale:
         :param img_from_prev_scale: Input image upsampled from the previous scale. None if the GAN is at the lowest scale in the hierarchy
         :return:
         """
-        noise = self.noise_amplitude * generate_noise((1, *self.img_shape))
+        # noise = self.noise_amplitude * generate_noise((1, *self.img_shape))
+        noise = generate_noise((1, *self.img_shape), self.noise_amplitude)
 
         if self.index_scale == 0:
             return self.generator(noise)
@@ -127,13 +128,14 @@ class TOADGANSingleScale:
 
         # Setup optimizers with learning rate decay
         self.c_optimizer = Adam(learning_rate=tf.keras.optimizers.schedules.PiecewiseConstantDecay(
-            [1600, 2500], [5e-4, 5e-5, 5e-6]), beta_1=0.5, beta_2=0.999)
+            cfg.TRAIN.LR_SCHEDULER_STEPS, [5e-4, 5e-5, 5e-6]), beta_1=0.5, beta_2=0.999)
         self.g_optimizer = Adam(learning_rate=tf.keras.optimizers.schedules.PiecewiseConstantDecay(
-            [1600, 2500], [5e-4, 5e-5, 5e-6]), beta_1=0.5, beta_2=0.999)
+            cfg.TRAIN.LR_SCHEDULER_STEPS, [5e-4, 5e-5, 5e-6]), beta_1=0.5, beta_2=0.999)
         t = trange(epochs, desc="Epoch ")
         for i in t:
             # Get a single noise tensor to use for all the training steps of the current epoch
-            noise = self.noise_amplitude * generate_noise((1, *self.img_shape))
+            # noise = self.noise_amplitude * generate_noise((1, *self.img_shape))
+            noise = generate_noise((1, *self.img_shape), self.noise_amplitude)
 
             # ----- Train the critic -----
             for _ in range(self.critic_steps):
@@ -334,10 +336,6 @@ class TOADGANSingleScale:
             activation = LeakyReLU(0.2)
             x_out = self._conv_block(x_out, self.n_conv_filters, activation)
 
-        # x_out = Flatten()(x_out)
-        # Keep the dropout?
-        # x_out = Dropout(0.2)(x_out)
-        # x_out = Dense(1)(x_out)
         x_out = Conv2D(filters=1, kernel_size=(3, 3), strides=(1, 1), padding="valid")(x_out)
 
         c_model = Model(patch, x_out, name=f"critic_{self.index_scale}")

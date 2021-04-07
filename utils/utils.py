@@ -1,3 +1,4 @@
+from config import cfg
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -39,6 +40,7 @@ def plot_noise_amplitude(path_file, noise_amplitude):
     fig.savefig(path_file)
 
 
-def generate_noise(shape):
-    # TODO Read the article about the noise generation
-    return tf.random.normal(shape=shape)
+def generate_noise(shape, std):
+    # For some reason, implementation of SinGAN/TOAD-GAN is different from the paper
+    # and a normal noise is generated and then multiplied by std
+    return std*tf.random.normal(shape=shape)
